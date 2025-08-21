@@ -1,412 +1,348 @@
-// Portfolio data loaded from GitHub
+// Global variables
+let scene, camera, renderer, particles, neuralNetwork;
 let portfolioData = [];
-let reviewsData = [
-    {
-        id: "1",
-        name: "Alex R., CEO",
-        rating: 5,
-        quote: "Shahmeer's ads generated $200K in 14 days. Unreal ROI.",
-        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
-    },
-    {
-        id: "2", 
-        name: "Sarah M., Startup Founder",
-        rating: 5,
-        quote: "His content strategy transformed our social media presence completely.",
-        avatar: "https://images.unsplash.com/photo-1494790108755-2616b332c265?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
-    },
-    {
-        id: "3",
-        name: "Marcus T., Author", 
-        rating: 5,
-        quote: "The ghostwriting was so authentic, I forgot I didn't write it myself.",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
-    },
-    {
-        id: "4",
-        name: "Lisa K., E-commerce Owner",
-        rating: 5, 
-        quote: "Pinterest campaigns drove 300% more traffic than expected.",
-        avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
-    },
-    {
-        id: "5",
-        name: "David P., Tech Entrepreneur",
-        rating: 5,
-        quote: "The Chrome extension automated our entire workflow. Brilliant!",
-        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100"
-    }
-];
+let reviewsData = [];
+let skillsData = [];
 
-// Skills data
-const skillsData = [
-    {
-        icon: "🚀",
-        title: "High-Converting Ads",
-        description: "Facebook, Instagram, TikTok — copy that sells in 3 seconds",
-        color: "text-cyber-blue"
-    },
-    {
-        icon: "🎥", 
-        title: "Viral Short Videos",
-        description: "AI-powered visuals + music that stop the scroll",
-        color: "text-electric-purple"
-    },
-    {
-        icon: "📚",
-        title: "Ghostwriting",
-        description: "Books, Podcasts — True crime, fiction, nonfiction — in your voice",
-        color: "text-cyber-blue"
-    },
-    {
-        icon: "📧",
-        title: "Email That Converts", 
-        description: "Newsletters that get opens, clicks, and sales",
-        color: "text-electric-purple"
-    },
-    {
-        icon: "📌",
-        title: "Pinterest That Sells",
-        description: "High-CTR pins that drive traffic and affiliate revenue", 
-        color: "text-cyber-blue"
-    },
-    {
-        icon: "🛠️",
-        title: "Web Apps & Extensions",
-        description: "Custom tools that automate and scale",
-        color: "text-electric-purple"
-    },
-    {
-        icon: "🎨",
-        title: "AI Content Strategy", 
-        description: "From prompt engineering to full content systems",
-        color: "text-cyber-blue"
-    }
-];
-
-// Initialize the application
+// Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing portfolio...');
+    
+    // Initialize core features
     initNeuralNetwork();
     initCustomCursor();
     initSkillsCarousel();
     initReviewsCarousel();
-    loadPortfolioFromGitHub().then(() => {
-        initPortfolioGrid();
-    });
-    initContactForm();
     initScrollEffects();
+    initEventListeners();
+    
+    // Load data
+    loadPortfolioData();
+    loadReviewsData();
+    
+    console.log('Portfolio initialization complete');
 });
 
-// Load portfolio data from GitHub
-async function loadPortfolioFromGitHub() {
-    try {
-        // Try to load from the current repository's data folder
-        const response = await fetch('/data/portfolio.json');
-        
-        if (response.ok) {
-            const data = await response.json();
-            portfolioData = data.portfolio || [];
-        } else {
-            // Fallback: Load from GitHub raw URL if deployed
-            const fallbackResponse = await fetch('https://raw.githubusercontent.com/shahmeer606/ShahmeerBaqai-Portfolio-Pro/main/data/portfolio.json');
-            if (fallbackResponse.ok) {
-                const data = await fallbackResponse.json();
-                portfolioData = data.portfolio || [];
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load portfolio data:', error);
-        portfolioData = [];
-    }
-}
-
-// Neural Network Background
+// Neural Network 3D Background
 function initNeuralNetwork() {
     const canvas = document.getElementById('neural-network');
+    if (!canvas) {
+        console.error('Neural network canvas not found');
+        return;
+    }
+    
     const ctx = canvas.getContext('2d');
-    let nodes = [];
-    let animationId;
-
+    
+    // Set canvas size
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
     }
-
-    function createNodes() {
-        nodes = [];
-        const nodeCount = 50;
-        
-        for (let i = 0; i < nodeCount; i++) {
-            nodes.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                size: Math.random() * 3 + 1
-            });
-        }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Neural network particles
+    const particles = [];
+    const particleCount = 50;
+    const connectionDistance = 150;
+    
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: Math.random() * 3 + 1
+        });
     }
-
-    function animate() {
+    
+    // Animation loop
+    function animateNeuralNetwork() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Update nodes
-        nodes.forEach(node => {
-            node.x += node.vx;
-            node.y += node.vy;
+        // Update and draw particles
+        particles.forEach((particle, i) => {
+            // Update position
+            particle.x += particle.vx;
+            particle.y += particle.vy;
             
-            if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
-            if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
-        });
-        
-        // Draw connections
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
-        ctx.lineWidth = 1;
-        
-        for (let i = 0; i < nodes.length; i++) {
-            for (let j = i + 1; j < nodes.length; j++) {
-                const nodeA = nodes[i];
-                const nodeB = nodes[j];
-                const dx = nodeA.x - nodeB.x;
-                const dy = nodeA.y - nodeB.y;
+            // Bounce off edges
+            if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+            if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+            
+            // Draw particle
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#00f3ff';
+            ctx.fill();
+            
+            // Draw connections
+            particles.slice(i + 1).forEach(otherParticle => {
+                const dx = particle.x - otherParticle.x;
+                const dy = particle.y - otherParticle.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < 150) {
-                    const opacity = 1 - (distance / 150);
-                    ctx.strokeStyle = `rgba(0, 243, 255, ${opacity * 0.1})`;
+                if (distance < connectionDistance) {
+                    const opacity = 1 - distance / connectionDistance;
                     ctx.beginPath();
-                    ctx.moveTo(nodeA.x, nodeA.y);
-                    ctx.lineTo(nodeB.x, nodeB.y);
+                    ctx.moveTo(particle.x, particle.y);
+                    ctx.lineTo(otherParticle.x, otherParticle.y);
+                    ctx.strokeStyle = `rgba(0, 243, 255, ${opacity * 0.5})`;
+                    ctx.lineWidth = 1;
                     ctx.stroke();
                 }
-            }
-        }
-        
-        // Draw nodes
-        ctx.fillStyle = 'rgba(0, 243, 255, 0.6)';
-        nodes.forEach(node => {
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
-            ctx.fill();
+            });
         });
         
-        animationId = requestAnimationFrame(animate);
+        requestAnimationFrame(animateNeuralNetwork);
     }
-
-    resizeCanvas();
-    createNodes();
-    animate();
-
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-        createNodes();
-    });
+    
+    animateNeuralNetwork();
 }
 
 // Custom Cursor
 function initCustomCursor() {
     const cursor = document.getElementById('custom-cursor');
+    if (!cursor) return;
+    
     let mouseX = 0, mouseY = 0;
     let cursorX = 0, cursorY = 0;
-
-    function updateCursor() {
-        const dx = mouseX - cursorX;
-        const dy = mouseY - cursorY;
-        
-        cursorX += dx * 0.1;
-        cursorY += dy * 0.1;
-        
-        cursor.style.left = cursorX - 10 + 'px';
-        cursor.style.top = cursorY - 10 + 'px';
-        
-        requestAnimationFrame(updateCursor);
-    }
-
+    
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
-
-    updateCursor();
-
-    // Add magnetic effect to interactive elements
-    const interactiveElements = document.querySelectorAll('button, a, .skill-card, .portfolio-item');
     
-    interactiveElements.forEach(el => {
-        el.addEventListener('mouseenter', () => cursor.classList.add('cursor-magnetic'));
-        el.addEventListener('mouseleave', () => cursor.classList.remove('cursor-magnetic'));
-    });
+    function animateCursor() {
+        cursorX += (mouseX - cursorX) * 0.1;
+        cursorY += (mouseY - cursorY) * 0.1;
+        
+        cursor.style.left = cursorX + 'px';
+        cursor.style.top = cursorY + 'px';
+        
+        requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+    
+    // Add hover effects
+    document.addEventListener('mouseenter', (e) => {
+        if (e.target.matches('button, a, .portfolio-item')) {
+            cursor.classList.add('hover');
+        }
+    }, true);
+    
+    document.addEventListener('mouseleave', (e) => {
+        if (e.target.matches('button, a, .portfolio-item')) {
+            cursor.classList.remove('hover');
+        }
+    }, true);
 }
 
 // Skills Carousel
 function initSkillsCarousel() {
+    skillsData = [
+        { icon: '🎯', title: 'High-Converting Ads', description: 'Facebook & Google campaigns that convert' },
+        { icon: '🎬', title: 'Viral Video Content', description: 'Short-form videos that capture attention' },
+        { icon: '📧', title: 'Email Marketing', description: 'Sequences that nurture and convert' },
+        { icon: '📌', title: 'Pinterest Strategy', description: 'Visual content that drives traffic' },
+        { icon: '🤖', title: 'AI-Powered Visuals', description: 'Cutting-edge AI content creation' },
+        { icon: '🛠️', title: 'Web Tools', description: 'Custom tools and extensions' },
+        { icon: '📚', title: 'Content Strategy', description: 'Books, podcasts, and thought leadership' },
+        { icon: '📊', title: 'Analytics & Optimization', description: 'Data-driven performance improvement' }
+    ];
+    
     const carousel = document.getElementById('skills-carousel');
-    let isPaused = false;
-    let rotation = 0;
-
-    // Create skill cards
-    skillsData.forEach((skill, index) => {
-        const skillCard = document.createElement('div');
-        skillCard.className = 'skill-card absolute w-64 h-32';
-        skillCard.innerHTML = `
-            <div class="glass-effect rounded-xl p-6 h-full hover:transform hover:scale-105 transition-all duration-300">
-                <div class="text-3xl mb-2">${skill.icon}</div>
-                <h3 class="font-orbitron font-bold ${skill.color} mb-1">${skill.title}</h3>
-                <p class="text-sm text-gray-400 leading-tight">${skill.description}</p>
-            </div>
-        `;
-        carousel.appendChild(skillCard);
-    });
-
-    const cards = carousel.querySelectorAll('.skill-card');
-    const centerX = 200;
-    const centerY = 200;
-    const radius = 180;
-
-    function updatePositions() {
-        cards.forEach((card, index) => {
-            const angle = (index / skillsData.length) * 2 * Math.PI + rotation;
-            const x = centerX + Math.cos(angle) * radius;
-            const y = centerY + Math.sin(angle) * radius;
-            
-            card.style.transform = `translate(${x - 128}px, ${y - 64}px)`;
-        });
-    }
-
-    function animate() {
-        if (!isPaused) {
-            rotation += 0.003;
-            updatePositions();
-        }
-        requestAnimationFrame(animate);
-    }
-
-    carousel.addEventListener('mouseenter', () => isPaused = true);
-    carousel.addEventListener('mouseleave', () => isPaused = false);
-
-    updatePositions();
-    animate();
+    if (!carousel) return;
+    
+    // Duplicate skills for seamless scrolling
+    const allSkills = [...skillsData, ...skillsData];
+    
+    carousel.innerHTML = allSkills.map(skill => `
+        <div class="skill-card">
+            <div class="skill-icon">${skill.icon}</div>
+            <h3>${skill.title}</h3>
+            <p>${skill.description}</p>
+        </div>
+    `).join('');
 }
 
 // Reviews Carousel
 function initReviewsCarousel() {
-    const track = document.getElementById('reviews-track');
-    const indicators = document.getElementById('review-indicators');
-    let currentIndex = 0;
-    let isPaused = false;
-
-    // Create review cards
-    reviewsData.forEach((review, index) => {
-        const reviewCard = document.createElement('div');
-        reviewCard.className = 'min-w-80 mx-4';
-        reviewCard.innerHTML = `
-            <div class="glass-effect rounded-xl p-6 h-full review-card">
-                <img src="${review.avatar}" alt="${review.name}" class="w-12 h-12 rounded-full mb-4 object-cover">
-                <div class="flex mb-4">
-                    ${'★'.repeat(review.rating).split('').map(() => '<span class="text-cyber-blue text-xl">★</span>').join('')}
-                </div>
-                <p class="text-white mb-4 font-medium italic">"${review.quote}"</p>
-                <p class="text-gray-400 text-sm font-semibold">— ${review.name}</p>
-            </div>
-        `;
-        track.appendChild(reviewCard);
-
-        // Create indicator
-        const indicator = document.createElement('button');
-        indicator.className = `w-3 h-3 rounded-full transition-all ${index === 0 ? 'bg-cyber-blue' : 'bg-gray-600'}`;
-        indicator.addEventListener('click', () => {
-            currentIndex = index;
-            updateCarousel();
-        });
-        indicators.appendChild(indicator);
-    });
-
-    function updateCarousel() {
-        const translateX = -(currentIndex * 320); // 320px = card width + margin
-        track.style.transform = `translateX(${translateX}px)`;
-        
-        // Update indicators
-        indicators.querySelectorAll('button').forEach((btn, index) => {
-            btn.className = `w-3 h-3 rounded-full transition-all ${
-                index === currentIndex ? 'bg-cyber-blue' : 'bg-gray-600'
-            }`;
-        });
-    }
-
-    function autoAdvance() {
-        if (!isPaused) {
-            currentIndex = (currentIndex + 1) % reviewsData.length;
-            updateCarousel();
+    reviewsData = [
+        {
+            name: 'Alex Rodriguez',
+            company: 'TechStart Inc.',
+            rating: 5,
+            quote: 'Shahmeer transformed our ad campaigns. We saw a 300% increase in conversions within the first month.',
+            avatar: '👨‍💼'
+        },
+        {
+            name: 'Sarah Chen',
+            company: 'E-commerce Plus',
+            rating: 5,
+            quote: 'The viral video strategy he created generated over 2M views and brought us 10,000+ new customers.',
+            avatar: '👩‍💻'
+        },
+        {
+            name: 'Marcus Johnson',
+            company: 'Digital Growth Co.',
+            rating: 5,
+            quote: 'His Pinterest strategy alone doubled our website traffic. ROI was incredible.',
+            avatar: '🧑‍🚀'
+        },
+        {
+            name: 'Emily Watson',
+            company: 'SaaS Solutions',
+            rating: 5,
+            quote: 'The AI-powered content tools he developed saved us 20 hours per week while improving quality.',
+            avatar: '👩‍🎨'
         }
+    ];
+    
+    const carousel = document.getElementById('reviews-carousel');
+    if (!carousel) return;
+    
+    // Duplicate reviews for seamless scrolling
+    const allReviews = [...reviewsData, ...reviewsData];
+    
+    carousel.innerHTML = allReviews.map(review => `
+        <div class="review-card">
+            <div class="review-stars">${'⭐'.repeat(review.rating)}</div>
+            <p class="review-quote">"${review.quote}"</p>
+            <div class="review-author">
+                <span>${review.avatar}</span>
+                <strong>${review.name}</strong><br>
+                <small>${review.company}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Scroll Effects
+function initScrollEffects() {
+    const navbar = document.getElementById('navbar');
+    if (!navbar) return;
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            navbar.style.background = 'rgba(15, 17, 26, 0.95)';
+        } else {
+            navbar.style.background = 'rgba(15, 17, 26, 0.9)';
+        }
+    });
+}
+
+// Event Listeners
+function initEventListeners() {
+    // Portfolio filter buttons
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Update active state
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Filter portfolio
+            const category = btn.dataset.category;
+            filterPortfolio(category);
+        });
+    });
+    
+    // Contact buttons
+    const contactBtns = document.querySelectorAll('#contact-btn, #floating-contact-btn, .btn-secondary');
+    contactBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showContactModal();
+        });
+    });
+    
+    // Contact form
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+        contactForm.addEventListener('submit', handleContactSubmit);
     }
-
-    track.addEventListener('mouseenter', () => isPaused = true);
-    track.addEventListener('mouseleave', () => isPaused = false);
-
-    setInterval(autoAdvance, 1500);
+    
+    // Portfolio item clicks
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.portfolio-item')) {
+            const item = e.target.closest('.portfolio-item');
+            const itemId = item.dataset.id;
+            if (itemId) {
+                previewFile(itemId);
+            }
+        }
+    });
+    
+    // Modal close on background click
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('active');
+        }
+    });
+    
+    console.log('Event listeners initialized');
 }
 
-// Portfolio Grid
-function initPortfolioGrid() {
-    loadPortfolioGrid();
+// Load Portfolio Data
+function loadPortfolioData() {
+    // Try to load from GitHub first, then fallback to localStorage
+    fetch('data/portfolio.json')
+        .then(response => response.json())
+        .then(data => {
+            portfolioData = data.portfolio || [];
+            renderPortfolioGrid();
+        })
+        .catch(() => {
+            // Fallback to localStorage
+            const stored = localStorage.getItem('portfolio_v2');
+            portfolioData = stored ? JSON.parse(stored) : [];
+            renderPortfolioGrid();
+        });
 }
 
-function loadPortfolioGrid() {
+// Load Reviews Data (static for now)
+function loadReviewsData() {
+    // Reviews are static and already loaded in initReviewsCarousel
+    console.log('Reviews data loaded');
+}
+
+// Render Portfolio Grid
+function renderPortfolioGrid() {
     const grid = document.getElementById('portfolio-grid');
+    if (!grid) return;
     
     if (portfolioData.length === 0) {
         grid.innerHTML = `
-            <div class="col-span-full text-center py-16">
-                <div class="text-6xl text-gray-600 mb-4">📁</div>
-                <h3 class="text-xl font-semibold text-gray-400 mb-2">No Portfolio Items</h3>
-                <p class="text-gray-500">Upload your first project via the admin panel to get started.</p>
+            <div class="portfolio-item" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📁</div>
+                <h3 style="color: #9ca3af; margin-bottom: 1rem;">No Portfolio Items Yet</h3>
+                <p style="color: #6b7280;">Upload your first project through the admin panel to get started.</p>
             </div>
         `;
         return;
     }
-
-    grid.innerHTML = '';
-    portfolioData.forEach(item => {
-        const portfolioItem = document.createElement('div');
-        portfolioItem.className = 'portfolio-item';
-        portfolioItem.setAttribute('data-category', item.category);
-        portfolioItem.innerHTML = `
-            <div class="glass-effect rounded-xl p-6 overflow-hidden cursor-pointer hover:transform hover:scale-105 transition-all duration-300">
-                <img src="${item.thumbnail}" alt="${item.title}" class="w-full h-48 object-cover rounded mb-4">
-                <div>
-                    <h3 class="font-orbitron font-bold text-cyber-blue mb-2">${item.title}</h3>
-                    <p class="text-gray-400 text-sm mb-4">${new Date(item.uploadDate).toLocaleDateString()}</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs bg-cyber-blue text-dark-bg px-3 py-1 rounded-full">
-                            ${item.category.toUpperCase()}
-                        </span>
-                        <button onclick="previewFile('${item.id}')" class="text-cyber-blue hover:text-white transition-colors">
-                            Preview →
-                        </button>
-                    </div>
-                </div>
+    
+    grid.innerHTML = portfolioData.map(item => `
+        <div class="portfolio-item" data-id="${item.id}" data-category="${item.category}">
+            <img src="${getFileUrl(item.thumbnail)}" alt="${item.title}" 
+                 onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="#374151"/><text x="150" y="100" text-anchor="middle" fill="#9ca3af" font-size="16">Preview</text></svg>')}'">
+            <div class="portfolio-item-content">
+                <h3>${item.title}</h3>
+                <p>${getCategoryName(item.category)}</p>
+                <small style="color: #6b7280;">${new Date(item.uploadDate).toLocaleDateString()}</small>
             </div>
-        `;
-        grid.appendChild(portfolioItem);
-    });
+        </div>
+    `).join('');
 }
 
+// Filter Portfolio
 function filterPortfolio(category) {
     const items = document.querySelectorAll('.portfolio-item');
-    const buttons = document.querySelectorAll('.category-btn');
     
-    // Update button states
-    buttons.forEach(btn => {
-        btn.classList.remove('active', 'bg-cyber-blue', 'text-dark-bg');
-        btn.classList.add('bg-gray-700');
-    });
-    
-    event.target.classList.add('active', 'bg-cyber-blue', 'text-dark-bg');
-    event.target.classList.remove('bg-gray-700');
-    
-    // Filter items
     items.forEach(item => {
-        if (category === 'all' || item.getAttribute('data-category') === category) {
+        if (category === 'all' || item.dataset.category === category) {
             item.style.display = 'block';
         } else {
             item.style.display = 'none';
@@ -414,74 +350,119 @@ function filterPortfolio(category) {
     });
 }
 
-// Contact Form
-function initContactForm() {
-    const form = document.getElementById('contact-form');
+// Get File URL
+function getFileUrl(filePath) {
+    if (!filePath) return '';
     
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const messageData = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            message: formData.get('message'),
-            timestamp: new Date().toISOString(),
-            status: 'unread'
-        };
-        
-        // Store message in localStorage
-        const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-        messageData.id = Date.now().toString();
-        messages.push(messageData);
-        localStorage.setItem('messages_v2', JSON.stringify(messages));
-        
-        showToast('Message sent! Thank you for reaching out.');
-        form.reset();
-    });
+    // If it's already a full URL, return as-is
+    if (filePath.startsWith('http')) {
+        return filePath;
+    }
+    
+    // If it's a GitHub path, construct the raw URL
+    if (window.githubUsername && window.githubRepo) {
+        return `https://raw.githubusercontent.com/${window.githubUsername}/${window.githubRepo}/main/${filePath}`;
+    }
+    
+    // Fallback to relative path
+    return filePath;
 }
 
-// Scroll Effects
-function initScrollEffects() {
-    const navbar = document.getElementById('navbar');
-    
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 80) {
-            navbar.classList.add('navbar-scrolled');
-        } else {
-            navbar.classList.remove('navbar-scrolled');
-        }
-    });
+// Get Category Name
+function getCategoryName(category) {
+    const categoryNames = {
+        'ads': 'High-Converting Ads',
+        'videos': 'Viral Videos',
+        'books': 'Books & Podcasts',
+        'email': 'Email Campaigns',
+        'pinterest': 'Pinterest',
+        'tools': 'Web Tools',
+        'ai': 'AI Visuals'
+    };
+    return categoryNames[category] || category;
 }
 
-// Utility Functions
-function scrollToSection(sectionId) {
-    const element = document.getElementById(sectionId);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Contact Modal Functions
+function showContactModal() {
+    const modal = document.getElementById('contact-modal');
+    if (modal) {
+        modal.classList.add('active');
+        document.getElementById('contact-name').focus();
     }
 }
 
+function hideContactModal() {
+    const modal = document.getElementById('contact-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.getElementById('contact-form').reset();
+    }
+}
+
+// Handle Contact Form Submit
+function handleContactSubmit(e) {
+    e.preventDefault();
+    
+    const formData = {
+        id: Date.now().toString(),
+        name: document.getElementById('contact-name').value,
+        email: document.getElementById('contact-email').value,
+        message: document.getElementById('contact-message').value,
+        date: new Date().toISOString(),
+        read: false
+    };
+    
+    // Save to localStorage
+    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
+    messages.unshift(formData);
+    localStorage.setItem('messages_v2', JSON.stringify(messages));
+    
+    // Show success message
+    showToast('Message sent successfully! I\'ll get back to you soon.');
+    
+    // Close modal
+    hideContactModal();
+}
+
+// Preview File Function
+function previewFile(itemId) {
+    const item = portfolioData.find(p => p.id === itemId);
+    if (!item) return;
+    
+    // This will be handled by preview.js
+    if (typeof window.showPreviewModal === 'function') {
+        window.showPreviewModal(item);
+    }
+}
+
+// Toast Notification
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
+    const messageEl = document.getElementById('toast-message');
     
-    toastMessage.textContent = message;
-    toast.classList.remove('hidden');
-    
-    if (type === 'error') {
-        toast.querySelector('.glass-effect').classList.add('border-red-500');
-        toast.querySelector('.glass-effect').classList.remove('border-green-500');
-    } else {
-        toast.querySelector('.glass-effect').classList.add('border-green-500');
-        toast.querySelector('.glass-effect').classList.remove('border-red-500');
+    if (toast && messageEl) {
+        messageEl.textContent = message;
+        toast.classList.add('active');
+        
+        // Auto-hide after 4 seconds
+        setTimeout(() => {
+            hideToast();
+        }, 4000);
     }
-    
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
 }
 
-// Global functions for HTML onclick handlers
-window.scrollToSection = scrollToSection;
-window.filterPortfolio = filterPortfolio;
+function hideToast() {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.classList.remove('active');
+    }
+}
+
+// Make functions globally available
+window.showContactModal = showContactModal;
+window.hideContactModal = hideContactModal;
+window.previewFile = previewFile;
+window.showToast = showToast;
+window.hideToast = hideToast;
+
+console.log('Main.js loaded successfully');

@@ -1,25 +1,16 @@
 {
   "portfolio": [
     {
-      "id": "sample-1",
+      "id": "1703001234567",
       "title": "High-Converting Facebook Ad Campaign",
-      "category": "ads", 
+      "category": "ads",
       "file": "uploads/sample-ad-campaign.pdf",
-      "type": "pdf",
-      "thumbnail": "uploads/thumbs/sample-ad-campaign.jpg",
-      "uploadDate": "2024-01-15T10:30:00Z",
-      "description": "Complete ad campaign that generated $50K revenue in 7 days"
-    },
-    {
-      "id": "sample-2", 
-      "title": "Viral TikTok Video Script",
-      "category": "videos",
-      "file": "uploads/sample-tiktok-script.mp4", 
-      "type": "video",
-      "thumbnail": "uploads/thumbs/sample-tiktok-script.jpg",
-      "uploadDate": "2024-01-10T14:20:00Z",
-      "description": "Script and execution for 2M+ view TikTok video"
+      "thumbnail": "uploads/thumbs/sample-ad-campaign.svg",
+      "uploadDate": "2024-08-21T20:00:00.000Z",
+      "fileSize": 1024000,
+      "fileType": "application/pdf"
     }
   ],
-  "lastUpdated": "2024-01-15T10:30:00Z"
+  "lastUpdated": "2024-08-21T20:00:00.000Z",
+  "version": "2.0"
 }

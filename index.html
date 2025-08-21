@@ -28,382 +28,290 @@
 
     <!-- Navigation -->
     <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300">
-        <div class="glass-effect rounded-b-2xl mx-4 mt-4 px-8 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-8">
-                    <button onclick="scrollToSection('home')" class="text-cyber-blue hover:text-white transition-colors">Work</button>
-                    <button onclick="scrollToSection('skills')" class="text-cyber-blue hover:text-white transition-colors">Skills</button>
-                    <button onclick="scrollToSection('results')" class="text-cyber-blue hover:text-white transition-colors">Results</button>
-                    <button onclick="scrollToSection('contact')" class="text-cyber-blue hover:text-white transition-colors">Contact</button>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <div class="logo-container">
+                        <span class="logo-sb">SB</span>
+                        <span class="logo-name">Shahmeer Baqai</span>
+                    </div>
                 </div>
+                
+                <!-- Admin Button (appears on hover) -->
                 <div class="admin-trigger">
-                    <button onclick="showAdminModal()" class="admin-button bg-cyber-blue text-dark-bg px-4 py-2 rounded-lg font-semibold">
-                        Admin
-                    </button>
+                    <button id="admin-btn" class="btn admin-btn">Admin</button>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="min-h-screen flex items-center justify-center relative pt-20" id="home">
-        <div class="text-center z-10">
-            <!-- SB Logo - Large -->
-            <h1 class="text-9xl font-orbitron font-black text-cyber-blue neon-text mb-4 floating-element">
-                SB
+    <section id="hero" class="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="text-center z-10 max-w-4xl mx-auto px-4">
+            <h1 class="hero-title mb-6">
+                <span class="text-cyber-blue text-8xl font-black block mb-4">SB</span>
+                <span class="text-white text-2xl font-light">Shahmeer Baqai</span>
             </h1>
-            <!-- Name - Small -->
-            <p class="text-2xl font-inter text-gray-300 mb-8">Shahmeer Baqai</p>
-            <!-- Core Mission -->
-            <div class="max-w-4xl mx-auto px-4">
-                <p class="text-xl font-medium mb-8 leading-relaxed">
-                    "You want content that works — not just looks good. With over 10 years across digital platforms, 
-                    I help you <span class="text-cyber-blue">stand out</span>, <span class="text-electric-purple">grow fast</span>, 
-                    and <span class="text-cyber-blue">sell more</span>. From high-converting ads to AI-powered videos and 
-                    ghostwritten stories, I craft content that doesn't just get seen — it gets results. 
-                    Let's build something <span class="neon-text">unstoppable</span>."
-                </p>
-                <p class="text-right text-cyber-blue font-orbitron text-lg">— Shahmeer Baqai</p>
+            <p class="hero-subtitle text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                Digital Strategist creating <span class="text-cyber-blue font-semibold">high-converting ads</span>, 
+                <span class="text-electric-purple font-semibold">viral videos</span>, and 
+                <span class="text-neon-green font-semibold">AI-powered content</span> that drives real results.
+            </p>
+            <div class="hero-cta">
+                <button class="btn btn-primary mr-4">View Portfolio</button>
+                <button class="btn btn-secondary">Get In Touch</button>
             </div>
         </div>
         
         <!-- Floating Elements -->
-        <div class="absolute inset-0 pointer-events-none">
-            <div class="floating-element absolute top-1/4 left-1/4 w-4 h-4 bg-cyber-blue rounded-full opacity-60"></div>
-            <div class="floating-element absolute top-1/3 right-1/4 w-6 h-6 bg-electric-purple rounded-full opacity-40"></div>
-            <div class="floating-element absolute bottom-1/4 left-1/3 w-3 h-3 bg-cyber-blue rounded-full opacity-80"></div>
-            <div class="floating-element absolute bottom-1/3 right-1/3 w-5 h-5 bg-electric-purple rounded-full opacity-50"></div>
-            <div class="floating-element absolute top-1/2 left-1/5 w-2 h-2 bg-cyber-blue rounded-full opacity-70"></div>
-            <div class="floating-element absolute bottom-1/2 right-1/5 w-4 h-4 bg-electric-purple rounded-full opacity-45"></div>
+        <div class="floating-elements">
+            <div class="floating-icon" style="top: 20%; left: 10%; animation-delay: 0s;">📊</div>
+            <div class="floating-icon" style="top: 30%; right: 15%; animation-delay: 1s;">🎯</div>
+            <div class="floating-icon" style="bottom: 40%; left: 20%; animation-delay: 2s;">💡</div>
+            <div class="floating-icon" style="bottom: 20%; right: 25%; animation-delay: 3s;">🚀</div>
         </div>
     </section>
 
-    <!-- Skills Section -->
-    <section class="py-20 px-4" id="skills">
-        <div class="max-w-6xl mx-auto text-center">
-            <h2 class="text-4xl font-orbitron font-bold mb-4">This Is What I Do</h2>
-            <p class="text-xl mb-8 text-gray-300">You don't need more content. You need content that converts.</p>
-            <p class="text-lg mb-12 text-cyber-blue">I build what works — fast, scalable, and proven.</p>
-            
-            <!-- Skills Carousel -->
-            <div class="relative h-96 flex items-center justify-center">
-                <div id="skills-carousel" class="relative w-80 h-80"></div>
+    <!-- Skills Carousel Section -->
+    <section id="skills" class="py-20 relative">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <h2 class="section-title mb-16">Expertise That Converts</h2>
+            <div class="skills-carousel-container">
+                <div id="skills-carousel" class="skills-carousel">
+                    <!-- Skills will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Portfolio Section -->
-    <section class="py-20 px-4" id="portfolio">
-        <div class="max-w-6xl mx-auto">
-            <h2 class="text-4xl font-orbitron font-bold text-center mb-12">Portfolio</h2>
+    <section id="portfolio" class="py-20">
+        <div class="max-w-7xl mx-auto px-4">
+            <h2 class="section-title text-center mb-16">Portfolio Showcase</h2>
             
             <!-- Category Filter -->
-            <div class="flex flex-wrap justify-center gap-4 mb-12" id="category-filter">
-                <button onclick="filterPortfolio('all')" class="category-btn active px-6 py-2 rounded-full font-semibold transition-colors bg-cyber-blue text-dark-bg">
-                    All Work
-                </button>
-                <button onclick="filterPortfolio('ads')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    High-Converting Ads
-                </button>
-                <button onclick="filterPortfolio('videos')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    Viral Short Videos
-                </button>
-                <button onclick="filterPortfolio('books')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    Books & Podcasts
-                </button>
-                <button onclick="filterPortfolio('email')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    Email Campaigns
-                </button>
-                <button onclick="filterPortfolio('pinterest')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    Pinterest That Sells
-                </button>
-                <button onclick="filterPortfolio('tools')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    Web Tools & Extensions
-                </button>
-                <button onclick="filterPortfolio('ai')" class="category-btn px-6 py-2 rounded-full font-semibold transition-colors bg-gray-700 hover:bg-cyber-blue hover:text-dark-bg">
-                    AI-Powered Visuals
-                </button>
+            <div class="portfolio-filters text-center mb-12">
+                <button class="filter-btn active" data-category="all">All Projects</button>
+                <button class="filter-btn" data-category="ads">High-Converting Ads</button>
+                <button class="filter-btn" data-category="videos">Viral Videos</button>
+                <button class="filter-btn" data-category="books">Books & Podcasts</button>
+                <button class="filter-btn" data-category="email">Email Campaigns</button>
+                <button class="filter-btn" data-category="pinterest">Pinterest</button>
+                <button class="filter-btn" data-category="tools">Web Tools</button>
+                <button class="filter-btn" data-category="ai">AI Visuals</button>
             </div>
-
+            
             <!-- Portfolio Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="portfolio-grid">
-                <!-- Portfolio items will be loaded here -->
-                <div class="col-span-full text-center py-16">
-                    <div class="text-6xl text-gray-600 mb-4">📁</div>
-                    <h3 class="text-xl font-semibold text-gray-400 mb-2">No Portfolio Items</h3>
-                    <p class="text-gray-500">Upload your first project via the admin panel to get started.</p>
-                </div>
+            <div id="portfolio-grid" class="portfolio-grid">
+                <!-- Portfolio items will be populated by JavaScript -->
             </div>
         </div>
     </section>
 
-    <!-- Client Reviews Section -->
-    <section class="py-20 px-4" id="results">
-        <div class="max-w-6xl mx-auto">
-            <h2 class="text-4xl font-orbitron font-bold text-center mb-12">What Clients Say</h2>
-            
-            <!-- Reviews Carousel -->
-            <div class="relative overflow-hidden h-64">
-                <div id="reviews-track" class="flex transition-transform duration-1000 ease-in-out">
-                    <!-- Reviews will be loaded here -->
-                </div>
-                
-                <!-- Indicators -->
-                <div class="flex justify-center space-x-2 mt-6" id="review-indicators">
-                    <!-- Indicators will be generated here -->
+    <!-- Reviews Section -->
+    <section id="reviews" class="py-20">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <h2 class="section-title mb-16">Client Success Stories</h2>
+            <div class="reviews-carousel-container">
+                <div id="reviews-carousel" class="reviews-carousel">
+                    <!-- Reviews will be populated by JavaScript -->
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Contact Section -->
-    <section class="py-20 px-4" id="contact">
-        <div class="max-w-2xl mx-auto">
-            <h2 class="text-4xl font-orbitron font-bold text-center mb-12">Let's Build Something Unstoppable</h2>
-            
-            <!-- Contact Form -->
-            <div class="glass-effect rounded-xl p-6">
-                <form id="contact-form" class="space-y-6">
-                    <div>
-                        <input 
-                            type="text" 
-                            name="name" 
-                            placeholder="Your Name" 
-                            required
-                            class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                        >
-                    </div>
-                    <div>
-                        <input 
-                            type="email" 
-                            name="email" 
-                            placeholder="Your Email" 
-                            required
-                            class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                        >
-                    </div>
-                    <div>
-                        <textarea 
-                            name="message" 
-                            rows="5" 
-                            placeholder="Tell me about your project..." 
-                            required
-                            class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue resize-none rounded-lg px-4 py-3"
-                        ></textarea>
-                    </div>
-                    <button 
-                        type="submit" 
-                        class="w-full bg-cyber-blue text-dark-bg font-semibold py-3 hover:bg-white transition-colors pulse-ring rounded-lg"
-                    >
-                        Send Message
-                    </button>
-                </form>
-            </div>
+    <section id="contact" class="py-20">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="section-title mb-8">Ready to Transform Your Business?</h2>
+            <p class="text-xl text-gray-300 mb-12">Let's create content that converts and campaigns that scale.</p>
+            <button id="contact-btn" class="btn btn-primary btn-lg">Start Your Project</button>
         </div>
     </section>
 
-    <!-- Admin Modal -->
-    <div id="admin-modal" class="fixed inset-0 modal-backdrop hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="glass-effect border-cyber-blue rounded-xl p-8 max-w-md w-full">
-                <h3 class="text-2xl font-orbitron font-bold text-center text-cyber-blue mb-6">Admin Access</h3>
-                <form id="admin-login-form" class="space-y-4">
-                    <input 
-                        type="text" 
-                        id="admin-username" 
-                        placeholder="Username" 
-                        class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                    >
-                    <input 
-                        type="password" 
-                        id="admin-password" 
-                        placeholder="Password" 
-                        class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                    >
-                    <button 
-                        type="submit" 
-                        class="w-full bg-cyber-blue text-dark-bg font-semibold py-3 hover:bg-white transition-colors rounded-lg"
-                    >
-                        Login
-                    </button>
-                </form>
-                <button onclick="hideAdminModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">×</button>
+    <!-- Floating Contact Button -->
+    <div id="floating-contact" class="floating-contact">
+        <button id="floating-contact-btn" class="btn btn-primary pulse">Send Message</button>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Admin Access</h3>
+                <button class="modal-close" onclick="hideAdminModal()">&times;</button>
+            </div>
+            <div id="admin-login-form" class="modal-body">
+                <div class="form-group">
+                    <label for="admin-username">Username</label>
+                    <input type="text" id="admin-username" class="form-input" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Password</label>
+                    <input type="password" id="admin-password" class="form-input" placeholder="Enter password">
+                </div>
+                <div id="login-error" class="error-message"></div>
+                <div id="lockout-message" class="error-message"></div>
+                <button id="admin-login-btn" class="btn btn-primary w-full">Login</button>
             </div>
         </div>
     </div>
 
     <!-- GitHub Token Modal -->
-    <div id="github-token-modal" class="fixed inset-0 modal-backdrop hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="glass-effect border-cyber-blue rounded-xl p-8 max-w-lg w-full">
-                <h3 class="text-2xl font-orbitron font-bold text-center text-cyber-blue mb-6">GitHub Configuration</h3>
-                <p class="text-gray-300 text-sm mb-6 text-center">
-                    To enable file uploads, enter your GitHub credentials below.
-                    <br><strong>Your token is stored securely in memory only.</strong>
-                </p>
-                <form id="github-token-form" class="space-y-4">
-                    <div>
-                        <label class="block text-white text-sm mb-2">GitHub Username</label>
-                        <input 
-                            type="text" 
-                            id="github-username" 
-                            placeholder="your-github-username"
-                            required
-                            class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                        >
-                    </div>
-                    <div>
-                        <label class="block text-white text-sm mb-2">GitHub Personal Access Token</label>
-                        <input 
-                            type="password" 
-                            id="github-token" 
-                            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                            required
-                            class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 focus:ring-2 focus:ring-cyber-blue rounded-lg px-4 py-3"
-                        >
-                        <p class="text-xs text-gray-400 mt-1">
-                            Need a token? Create one at: 
-                            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" class="text-cyber-blue hover:underline">
-                                GitHub Settings
-                            </a>
-                        </p>
-                    </div>
-                    <button 
-                        type="submit" 
-                        class="w-full bg-cyber-blue text-dark-bg font-semibold py-3 hover:bg-white transition-colors rounded-lg"
-                    >
-                        Connect GitHub
-                    </button>
-                </form>
-                <button onclick="hideGitHubTokenModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">×</button>
+    <div id="github-token-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>GitHub Configuration</h3>
+                <button class="modal-close" onclick="hideGitHubTokenModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm text-gray-400 mb-4">Configure your GitHub repository for file uploads:</p>
+                <div class="form-group">
+                    <label for="github-username">GitHub Username</label>
+                    <input type="text" id="github-username" class="form-input" placeholder="SHAHMEERHACKER101">
+                </div>
+                <div class="form-group">
+                    <label for="github-token">Personal Access Token</label>
+                    <input type="password" id="github-token" class="form-input" placeholder="ghp_AaBbCc123...">
+                    <small class="text-gray-500">Requires 'repo' and 'workflow' scopes</small>
+                </div>
+                <div class="form-group">
+                    <label for="github-repo">Repository Name</label>
+                    <input type="text" id="github-repo" class="form-input" value="Portfolio-Pro">
+                </div>
+                <div id="github-error" class="error-message"></div>
+                <button id="github-connect-btn" class="btn btn-primary w-full">Connect to GitHub</button>
             </div>
         </div>
     </div>
 
-    <!-- Admin Dashboard -->
-    <div id="admin-dashboard" class="fixed inset-0 modal-backdrop hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="glass-effect border-cyber-blue rounded-xl p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-8">
-                    <h3 class="text-3xl font-orbitron font-bold text-cyber-blue">Admin Dashboard</h3>
-                    <button onclick="hideAdminDashboard()" class="text-gray-400 hover:text-white text-xl">×</button>
-                </div>
-                
-                <!-- Dashboard Tabs -->
-                <div class="border-b border-gray-700 mb-8">
-                    <nav class="flex space-x-8">
-                        <button onclick="showTab('upload')" class="tab-btn active py-2 px-4 text-cyber-blue border-b-2 border-cyber-blue">Upload</button>
-                        <button onclick="showTab('portfolio')" class="tab-btn py-2 px-4 text-gray-400 hover:text-white">Portfolio</button>
-                        <button onclick="showTab('messages')" class="tab-btn py-2 px-4 text-gray-400 hover:text-white">Messages</button>
-                    </nav>
+    <!-- Admin Dashboard Modal -->
+    <div id="admin-dashboard" class="modal modal-large">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Admin Dashboard</h3>
+                <button class="modal-close" onclick="hideAdminDashboard()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Tab Navigation -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="showTab('upload')">Upload</button>
+                    <button class="tab-btn" onclick="showTab('portfolio')">Portfolio</button>
+                    <button class="tab-btn" onclick="showTab('messages')">Messages</button>
                 </div>
                 
                 <!-- Upload Tab -->
-                <div id="upload-tab" class="tab-content">
-                    <h4 class="text-xl font-semibold mb-6">Upload New Project</h4>
-                    <form id="upload-form" class="space-y-6">
-                        <div>
-                            <label class="block text-white mb-2">Project Title</label>
-                            <input 
-                                type="text" 
-                                name="title" 
-                                placeholder="Enter project title"
-                                required
-                                class="w-full bg-transparent border border-cyber-blue text-white placeholder-gray-400 rounded-lg px-4 py-3"
-                            >
+                <div id="upload-tab" class="tab-content active">
+                    <h4>Upload New File</h4>
+                    <form id="upload-form" class="upload-form">
+                        <div class="form-group">
+                            <label for="file-input">Select File (up to 100MB)</label>
+                            <input type="file" id="file-input" class="form-input" accept=".pdf,.mp4,.mov,.docx,.txt,.zip,.jpg,.png,.gif">
                         </div>
-                        <div>
-                            <label class="block text-white mb-2">Category</label>
-                            <select 
-                                name="category" 
-                                required
-                                class="w-full bg-gray-800 border border-cyber-blue text-white rounded-lg px-4 py-3"
-                            >
-                                <option value="">Select a category</option>
+                        <div class="form-group">
+                            <label for="file-title">Title</label>
+                            <input type="text" id="file-title" class="form-input" placeholder="Enter file title">
+                        </div>
+                        <div class="form-group">
+                            <label for="file-category">Category</label>
+                            <select id="file-category" class="form-input">
                                 <option value="ads">High-Converting Ads</option>
-                                <option value="videos">Viral Short Videos</option>
+                                <option value="videos">Viral Videos</option>
                                 <option value="books">Books & Podcasts</option>
                                 <option value="email">Email Campaigns</option>
-                                <option value="pinterest">Pinterest That Sells</option>
-                                <option value="tools">Web Tools & Extensions</option>
-                                <option value="ai">AI-Powered Visuals</option>
+                                <option value="pinterest">Pinterest</option>
+                                <option value="tools">Web Tools</option>
+                                <option value="ai">AI Visuals</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-white mb-2">File</label>
-                            <input 
-                                type="file" 
-                                name="file" 
-                                accept=".pdf,.mp4,.mov,.docx,.txt,.zip"
-                                required
-                                class="w-full bg-transparent border border-cyber-blue text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyber-blue file:text-dark-bg hover:file:bg-white rounded-lg"
-                            >
-                            <div class="text-sm text-gray-400 mt-2">
-                                Max file size: 100MB (GitHub limit). Supported: PDF, Video (MP4, MOV), DOCX, TXT, ZIP
-                            </div>
+                        <div id="upload-progress" class="upload-progress">
+                            <div class="progress-bar"></div>
+                            <div class="progress-text"></div>
                         </div>
-                        <button 
-                            type="submit" 
-                            class="w-full bg-cyber-blue text-dark-bg font-semibold py-3 hover:bg-white transition-colors rounded-lg"
-                        >
-                            Upload Project
-                        </button>
+                        <button type="submit" class="btn btn-primary w-full">Upload to GitHub</button>
                     </form>
                 </div>
                 
                 <!-- Portfolio Tab -->
-                <div id="portfolio-tab" class="tab-content hidden">
-                    <h4 class="text-xl font-semibold mb-6">Manage Portfolio</h4>
-                    <div id="admin-portfolio-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Portfolio items will be loaded here -->
+                <div id="portfolio-tab" class="tab-content">
+                    <h4>Manage Portfolio</h4>
+                    <div id="admin-portfolio-grid" class="admin-portfolio-grid">
+                        <!-- Portfolio items will be populated here -->
                     </div>
                 </div>
                 
                 <!-- Messages Tab -->
-                <div id="messages-tab" class="tab-content hidden">
-                    <h4 class="text-xl font-semibold mb-6">Client Messages</h4>
-                    <div id="admin-messages-list">
-                        <!-- Messages will be loaded here -->
+                <div id="messages-tab" class="tab-content">
+                    <h4>Contact Messages</h4>
+                    <div id="admin-messages" class="admin-messages">
+                        <!-- Messages will be populated here -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div id="contact-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Send Message</h3>
+                <button class="modal-close" onclick="hideContactModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="contact-form">
+                    <div class="form-group">
+                        <label for="contact-name">Name</label>
+                        <input type="text" id="contact-name" class="form-input" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-email">Email</label>
+                        <input type="email" id="contact-email" class="form-input" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contact-message">Message</label>
+                        <textarea id="contact-message" class="form-input" rows="5" placeholder="Tell me about your project..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Send Message</button>
+                </form>
             </div>
         </div>
     </div>
 
     <!-- File Preview Modal -->
-    <div id="file-preview-modal" class="fixed inset-0 modal-backdrop hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="glass-effect border-cyber-blue rounded-xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 id="preview-title" class="text-2xl font-orbitron font-bold text-cyber-blue"></h3>
-                    <div class="flex space-x-4">
-                        <button onclick="downloadCurrentFile()" class="bg-cyber-blue text-dark-bg font-semibold px-4 py-2 rounded-lg hover:bg-white transition-colors">
-                            Download
-                        </button>
-                        <button onclick="hideFilePreview()" class="text-gray-400 hover:text-white text-xl">×</button>
-                    </div>
+    <div id="preview-modal" class="modal modal-large">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="preview-title">File Preview</h3>
+                <button class="modal-close" onclick="hidePreviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content" class="preview-content">
+                    <!-- Preview content will be populated here -->
                 </div>
-                <div id="preview-content" class="mt-6">
-                    <!-- Preview content will be loaded here -->
+                <div class="preview-actions">
+                    <button id="download-btn" class="btn btn-secondary">Download</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Success Toast -->
-    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-        <div class="glass-effect rounded-lg p-4 border-l-4 border-green-500">
-            <p id="toast-message" class="text-white font-semibold"></p>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <span id="toast-message"></span>
+            <button onclick="hideToast()" class="toast-close">&times;</button>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Core Libraries -->
     <script src="lib/three.min.js"></script>
-    <script src="lib/gsap.min.js"></script>
     <script src="lib/pdf.min.js"></script>
+    
+    <!-- Main Scripts -->
     <script src="scripts/main.js"></script>
     <script src="scripts/admin.js"></script>
     <script src="scripts/preview.js"></script>
-    <script src="scripts/messages.js"></script>
 </body>
 </html>

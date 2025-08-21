@@ -1,269 +1,603 @@
-// GitHub-backed CMS Admin functionality
-let isLoggedIn = false;
+// Admin system with GitHub integration
 let githubToken = null;
 let githubUsername = null;
-let githubRepo = 'Portfolio-Pro'; // ✅ Your correct repo name
+let githubRepo = 'Portfolio-Pro';
+let adminSession = null;
 
 // Admin credentials
 const ADMIN_USERNAME = 'shahmeer606';
 const ADMIN_PASSWORD = '9MJMKHmjfP695IW';
 
-// Portfolio data (loaded from GitHub)
-let portfolioData = [];
-
-// Check if admin is logged in on page load
+// Initialize admin system when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Admin system initializing...');
+    
+    // Check for existing session
     checkAdminSession();
+    
+    // Initialize event listeners
+    initAdminEventListeners();
+    
+    console.log('Admin system ready');
 });
 
+// Initialize Event Listeners
+function initAdminEventListeners() {
+    // Admin button click
+    const adminBtn = document.getElementById('admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showAdminModal);
+        console.log('Admin button listener attached');
+    } else {
+        console.error('Admin button not found');
+    }
+    
+    // Admin login form
+    const loginForm = document.getElementById('admin-login-form');
+    const loginBtn = document.getElementById('admin-login-btn');
+    
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleAdminLogin);
+        console.log('Login button listener attached');
+    }
+    
+    // GitHub connect button
+    const githubConnectBtn = document.getElementById('github-connect-btn');
+    if (githubConnectBtn) {
+        githubConnectBtn.addEventListener('click', handleGitHubConnect);
+    }
+    
+    // Upload form
+    const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleFileUpload);
+    }
+    
+    // Tab navigation
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabName = btn.textContent.toLowerCase();
+            showTab(tabName);
+        });
+    });
+    
+    // Enter key support for login
+    document.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const modal = document.getElementById('admin-modal');
+            if (modal && modal.classList.contains('active')) {
+                if (document.getElementById('admin-login-form').style.display !== 'none') {
+                    handleAdminLogin();
+                }
+            }
+        }
+    });
+}
+
+// Check Admin Session
 function checkAdminSession() {
-    // Session is only valid in memory for security
-    // No persistent session storage for GitHub tokens
+    const stored = localStorage.getItem('admin_session');
+    if (stored) {
+        try {
+            adminSession = JSON.parse(stored);
+            const now = Date.now();
+            
+            // Check if session is valid (24 hours)
+            if (adminSession.expires > now) {
+                console.log('Valid admin session found');
+                return true;
+            } else {
+                localStorage.removeItem('admin_session');
+                adminSession = null;
+            }
+        } catch (e) {
+            localStorage.removeItem('admin_session');
+            adminSession = null;
+        }
+    }
+    return false;
 }
 
+// Show Admin Modal
 function showAdminModal() {
+    console.log('Showing admin modal');
+    
     const modal = document.getElementById('admin-modal');
-    modal.classList.remove('hidden');
+    if (!modal) {
+        console.error('Admin modal not found in DOM');
+        return;
+    }
+    
+    // Check if account is locked
+    if (isAccountLocked()) {
+        showLockoutMessage();
+        return;
+    }
+    
+    modal.classList.add('active');
+    
+    // Focus on username field
+    setTimeout(() => {
+        const usernameField = document.getElementById('admin-username');
+        if (usernameField) {
+            usernameField.focus();
+        }
+    }, 100);
 }
 
+// Hide Admin Modal
 function hideAdminModal() {
     const modal = document.getElementById('admin-modal');
-    modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.remove('active');
+        clearLoginErrors();
+        clearForm();
+    }
 }
 
-function showAdminDashboard() {
-    const dashboard = document.getElementById('admin-dashboard');
-    dashboard.classList.remove('hidden');
-    loadAdminData();
-}
-
-function hideAdminDashboard() {
-    const dashboard = document.getElementById('admin-dashboard');
-    dashboard.classList.add('hidden');
-}
-
-// Admin login form handler
-document.getElementById('admin-login-form').addEventListener('submit', function(e) {
-    e.preventDefault();
+// Handle Admin Login
+function handleAdminLogin() {
+    console.log('Handling admin login...');
     
-    const username = document.getElementById('admin-username').value;
+    const username = document.getElementById('admin-username').value.trim();
     const password = document.getElementById('admin-password').value;
     
+    clearLoginErrors();
+    
+    if (!username || !password) {
+        showLoginError('Please enter both username and password');
+        return;
+    }
+    
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        isLoggedIn = true;
+        // Successful login
+        console.log('Login successful');
+        
+        // Clear failed attempts
+        clearFailedAttempts();
+        
+        // Create session
+        adminSession = {
+            username: username,
+            loginTime: Date.now(),
+            expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        };
+        localStorage.setItem('admin_session', JSON.stringify(adminSession));
+        
+        // Hide login modal and show GitHub setup
         hideAdminModal();
         showGitHubTokenModal();
-        showToast('Admin login successful! Please enter your GitHub token.', 'success');
+        
     } else {
-        showToast('Invalid credentials', 'error');
+        // Failed login
+        console.log('Login failed');
+        handleFailedLogin();
+        showLoginError('Invalid username or password');
     }
-});
-
-function showGitHubTokenModal() {
-    const modal = document.getElementById('github-token-modal');
-    modal.classList.remove('hidden');
 }
 
+// Handle Failed Login
+function handleFailedLogin() {
+    let attempts = JSON.parse(localStorage.getItem('admin_attempts') || '{"count": 0, "lastAttempt": 0}');
+    
+    attempts.count++;
+    attempts.lastAttempt = Date.now();
+    
+    localStorage.setItem('admin_attempts', JSON.stringify(attempts));
+    
+    if (attempts.count >= 2) {
+        // Lock account for 15 minutes
+        const lockUntil = Date.now() + (15 * 60 * 1000);
+        localStorage.setItem('admin_locked_until', lockUntil.toString());
+        showLockoutMessage();
+        hideAdminModal();
+    }
+}
+
+// Check if Account is Locked
+function isAccountLocked() {
+    const lockUntil = localStorage.getItem('admin_locked_until');
+    if (lockUntil) {
+        const now = Date.now();
+        if (now < parseInt(lockUntil)) {
+            return true;
+        } else {
+            // Lock expired, clear it
+            localStorage.removeItem('admin_locked_until');
+            clearFailedAttempts();
+        }
+    }
+    return false;
+}
+
+// Show Lockout Message
+function showLockoutMessage() {
+    const lockUntil = localStorage.getItem('admin_locked_until');
+    if (lockUntil) {
+        const remaining = Math.ceil((parseInt(lockUntil) - Date.now()) / 60000);
+        showToast(`Account locked. Try again in ${remaining} minutes.`, 'error');
+    }
+}
+
+// Clear Failed Attempts
+function clearFailedAttempts() {
+    localStorage.removeItem('admin_attempts');
+    localStorage.removeItem('admin_locked_until');
+}
+
+// Show GitHub Token Modal
+function showGitHubTokenModal() {
+    console.log('Showing GitHub token modal');
+    
+    const modal = document.getElementById('github-token-modal');
+    if (modal) {
+        modal.classList.add('active');
+        
+        // Pre-fill repo name
+        const repoField = document.getElementById('github-repo');
+        if (repoField && !repoField.value) {
+            repoField.value = githubRepo;
+        }
+        
+        // Focus on username field
+        setTimeout(() => {
+            const usernameField = document.getElementById('github-username');
+            if (usernameField) {
+                usernameField.focus();
+            }
+        }, 100);
+    }
+}
+
+// Hide GitHub Token Modal
 function hideGitHubTokenModal() {
     const modal = document.getElementById('github-token-modal');
-    modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.remove('active');
+        clearGitHubErrors();
+    }
 }
 
-// GitHub token form handler
-document.getElementById('github-token-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+// Handle GitHub Connect
+function handleGitHubConnect() {
+    console.log('Connecting to GitHub...');
     
-    const token = document.getElementById('github-token').value;
-    const username = document.getElementById('github-username').value;
+    const username = document.getElementById('github-username').value.trim();
+    const token = document.getElementById('github-token').value.trim();
+    const repo = document.getElementById('github-repo').value.trim();
     
-    if (!token || !username) {
-        showToast('Please enter both GitHub username and token', 'error');
+    clearGitHubErrors();
+    
+    if (!username || !token || !repo) {
+        showGitHubError('Please fill in all fields');
         return;
     }
     
-    // Update global vars
-    githubToken = token;
+    // Store credentials in memory
     githubUsername = username;
-
-    // Test GitHub API access
-    try {
-        const response = await fetch(`https://api.github.com/repos/${username}/${githubRepo}`, {
-            headers: {
-                'Authorization': `token ${token}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-        
-        if (response.ok) {
+    githubToken = token;
+    githubRepo = repo;
+    
+    // Make them globally available
+    window.githubUsername = username;
+    window.githubRepo = repo;
+    
+    // Test connection
+    testGitHubConnection()
+        .then(() => {
+            console.log('GitHub connection successful');
             hideGitHubTokenModal();
             showAdminDashboard();
-            showToast('GitHub access verified! You can now upload files.', 'success');
-            loadAdminPortfolio(); // Load existing items
-        } else {
-            const error = await response.json();
-            showToast(`GitHub error: ${error.message}`, 'error');
-        }
-    } catch (error) {
-        showToast('Failed to connect to GitHub. Check your internet and credentials.', 'error');
-        console.error('GitHub connection error:', error);
-    }
-});
+            showToast('Connected to GitHub successfully!');
+        })
+        .catch((error) => {
+            console.error('GitHub connection failed:', error);
+            showGitHubError('Failed to connect to GitHub. Please check your credentials.');
+        });
+}
 
-// Upload form handler with GitHub API
-document.getElementById('upload-form').addEventListener('submit', async function(e) {
+// Test GitHub Connection
+async function testGitHubConnection() {
+    const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}`;
+    
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': `token ${githubToken}`,
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+}
+
+// Show Admin Dashboard
+function showAdminDashboard() {
+    console.log('Showing admin dashboard');
+    
+    const modal = document.getElementById('admin-dashboard');
+    if (modal) {
+        modal.classList.add('active');
+        
+        // Load dashboard data
+        loadAdminPortfolio();
+        loadAdminMessages();
+        
+        // Show upload tab by default
+        showTab('upload');
+    }
+}
+
+// Hide Admin Dashboard
+function hideAdminDashboard() {
+    const modal = document.getElementById('admin-dashboard');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Show Tab
+function showTab(tabName) {
+    console.log(`Switching to ${tabName} tab`);
+    
+    // Update tab buttons
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase() === tabName) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update tab content
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    const activeTab = document.getElementById(`${tabName}-tab`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+    
+    // Refresh data for specific tabs
+    if (tabName === 'portfolio') {
+        loadAdminPortfolio();
+    } else if (tabName === 'messages') {
+        loadAdminMessages();
+    }
+}
+
+// Handle File Upload
+async function handleFileUpload(e) {
     e.preventDefault();
+    console.log('Handling file upload...');
     
-    if (!isLoggedIn || !githubToken || !githubUsername) {
-        showToast('Please login and configure GitHub access first', 'error');
+    if (!githubToken || !githubUsername) {
+        showToast('GitHub connection required', 'error');
         return;
     }
     
-    const formData = new FormData(e.target);
-    const file = formData.get('file');
-    const title = formData.get('title');
-    const category = formData.get('category');
+    const fileInput = document.getElementById('file-input');
+    const titleInput = document.getElementById('file-title');
+    const categoryInput = document.getElementById('file-category');
     
-    if (!file || !title || !category) {
-        showToast('Please fill all fields', 'error');
+    const file = fileInput.files[0];
+    const title = titleInput.value.trim();
+    const category = categoryInput.value;
+    
+    if (!file || !title) {
+        showToast('Please select a file and enter a title', 'error');
         return;
     }
     
-    // Check file size (< 100MB for GitHub)
-    if (file.size > 100 * 1024 * 1024) {
-        showToast('File size must be less than 100MB', 'error');
+    if (file.size > 100 * 1024 * 1024) { // 100MB limit
+        showToast('File size must be under 100MB', 'error');
         return;
     }
     
     try {
-        showToast('Uploading to GitHub...', 'info');
+        showUploadProgress(true);
+        updateUploadProgress(10, 'Reading file...');
+        
+        // Convert file to base64
+        const base64 = await fileToBase64(file);
+        updateUploadProgress(30, 'Uploading to GitHub...');
+        
+        // Generate filename
+        const timestamp = Date.now();
+        const extension = file.name.split('.').pop();
+        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.${extension}`;
+        const filePath = `uploads/${filename}`;
         
         // Upload file to GitHub
-        const uploadResult = await uploadFileToGitHub(title, file, category);
+        await uploadFileToGitHub(filePath, base64, `Upload: ${title}`);
+        updateUploadProgress(60, 'Generating thumbnail...');
         
-        if (uploadResult.success) {
-            showToast('✅ File uploaded successfully! Rebuilding site...', 'success');
-            e.target.reset();
-            setTimeout(loadAdminPortfolio, 3000); // Reload after upload
+        // Generate thumbnail if applicable
+        let thumbnailPath = null;
+        if (file.type.startsWith('image/')) {
+            const thumbnailBase64 = await generateImageThumbnail(file);
+            thumbnailPath = `uploads/thumbs/${filename}.jpg`;
+            await uploadFileToGitHub(thumbnailPath, thumbnailBase64, `Thumbnail: ${title}`);
         } else {
-            showToast(`❌ Upload failed: ${uploadResult.error}`, 'error');
+            // Create a placeholder thumbnail
+            const placeholderSvg = createPlaceholderThumbnail(title, getFileTypeIcon(file.type));
+            const placeholderBase64 = btoa(placeholderSvg);
+            thumbnailPath = `uploads/thumbs/${filename}.svg`;
+            await uploadFileToGitHub(thumbnailPath, placeholderBase64, `Thumbnail: ${title}`);
         }
+        
+        updateUploadProgress(80, 'Updating portfolio...');
+        
+        // Update portfolio.json
+        const portfolioItem = {
+            id: timestamp.toString(),
+            title: title,
+            category: category,
+            file: filePath,
+            thumbnail: thumbnailPath,
+            uploadDate: new Date().toISOString(),
+            fileSize: file.size,
+            fileType: file.type
+        };
+        
+        await updatePortfolioJson(portfolioItem);
+        updateUploadProgress(100, 'Upload complete!');
+        
+        showToast('File uploaded successfully!');
+        
+        // Reset form
+        document.getElementById('upload-form').reset();
+        
+        // Refresh portfolio after delay
+        setTimeout(() => {
+            loadAdminPortfolio();
+            if (typeof window.loadPortfolioData === 'function') {
+                window.loadPortfolioData();
+            }
+        }, 2000);
         
     } catch (error) {
         console.error('Upload error:', error);
-        showToast('Upload failed. Please try again.', 'error');
-    }
-});
-
-async function uploadFileToGitHub(title, file, category) {
-    try {
-        const fileName = file.name;
-        const filePath = `uploads/${fileName}`;
-        const fileBase64 = await fileToBase64(file);
-        const base64Content = fileBase64.split(',')[1]; // Remove data URL prefix
-
-        // ✅ Clean URL — no extra spaces!
-        const fileUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
-
-        const fileResponse = await fetch(fileUrl, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-            },
-            body: JSON.stringify({
-                message: `Upload: ${title}`,
-                content: base64Content,
-                committer: {
-                    name: 'Shahmeer Baqai',
-                    email: 'shahmeer606@gmail.com'
-                }
-            })
-        });
-
-        if (!fileResponse.ok) {
-            const error = await fileResponse.json();
-            throw new Error(error.message || 'Failed to upload file');
-        }
-
-        // Generate thumbnail
-        const thumbnail = await generateThumbnail(file);
-        const thumbnailPath = `uploads/thumbs/${fileName.split('.')[0]}.svg`;
-
-        if (thumbnail) {
-            const thumbnailBase64 = thumbnail.split(',')[1];
-            const thumbnailUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${thumbnailPath}`;
-
-            await fetch(thumbnailUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
-                },
-                body: JSON.stringify({
-                    message: `Thumbnail: ${title}`,
-                    content: thumbnailBase64,
-                    committer: {
-                        name: 'Shahmeer Baqai',
-                        email: 'shahmeer606@gmail.com'
-                    }
-                })
-            });
-        }
-
-        // Update portfolio.json
-        const updateResult = await updatePortfolioJson(
-            title, 
-            category, 
-            filePath, 
-            thumbnailPath, 
-            file.type
-        );
-
-        return updateResult;
-
-    } catch (error) {
-        console.error('GitHub upload error:', error);
-        return { success: false, error: error.message };
+        showToast(`Upload failed: ${error.message}`, 'error');
+    } finally {
+        showUploadProgress(false);
     }
 }
 
-async function updatePortfolioJson(title, category, filePath, thumbnailPath, fileType) {
-    try {
-        const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+// Convert File to Base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
+// Upload File to GitHub
+async function uploadFileToGitHub(path, content, message) {
+    const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${path}`;
+    
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${githubToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+            message: message,
+            content: content,
+            committer: {
+                name: 'Portfolio Admin',
+                email: 'admin@portfolio.com'
+            }
+        })
+    });
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+    }
+    
+    return response.json();
+}
+
+// Generate Image Thumbnail
+function generateImageThumbnail(file) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+            canvas.width = 300;
+            canvas.height = 200;
+            
+            // Calculate dimensions to maintain aspect ratio
+            const aspectRatio = img.width / img.height;
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            
+            if (aspectRatio > canvas.width / canvas.height) {
+                drawHeight = canvas.width / aspectRatio;
+            } else {
+                drawWidth = canvas.height * aspectRatio;
+            }
+            
+            const x = (canvas.width - drawWidth) / 2;
+            const y = (canvas.height - drawHeight) / 2;
+            
+            ctx.fillStyle = '#374151';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, x, y, drawWidth, drawHeight);
+            
+            const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            resolve(base64);
+        };
+        
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// Create Placeholder Thumbnail
+function createPlaceholderThumbnail(title, icon) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
+        <rect width="300" height="200" fill="#374151"/>
+        <text x="150" y="80" text-anchor="middle" fill="#00f3ff" font-size="40">${icon}</text>
+        <text x="150" y="130" text-anchor="middle" fill="#ffffff" font-size="16">${title.substring(0, 20)}</text>
+        <text x="150" y="150" text-anchor="middle" fill="#9ca3af" font-size="12">Click to preview</text>
+    </svg>`;
+}
+
+// Get File Type Icon
+function getFileTypeIcon(type) {
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('video')) return '🎬';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('audio')) return '🎵';
+    if (type.includes('zip') || type.includes('archive')) return '📦';
+    if (type.includes('text') || type.includes('document')) return '📝';
+    return '📁';
+}
+
+// Update Portfolio JSON
+async function updatePortfolioJson(newItem) {
+    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+    
+    try {
+        // Get current portfolio.json
         const getResponse = await fetch(portfolioUrl, {
             headers: {
                 'Authorization': `token ${githubToken}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-
-        let data = { portfolio: [], lastUpdated: new Date().toISOString() };
+        
+        let portfolioData = { portfolio: [], lastUpdated: new Date().toISOString() };
         let sha = null;
-
+        
         if (getResponse.ok) {
             const fileData = await getResponse.json();
-            sha = fileData.sha;
             const content = atob(fileData.content);
-            data = JSON.parse(content);
+            portfolioData = JSON.parse(content);
+            sha = fileData.sha;
         }
-
+        
         // Add new item
-        const newItem = {
-            id: Date.now().toString(),
-            title,
-            category,
-            file: filePath,
-            type: fileType.split('/')[0],
-            thumbnail: thumbnailPath,
-            uploadDate: new Date().toISOString()
-        };
-
-        data.portfolio.unshift(newItem); // Newest first
-        data.lastUpdated = new Date().toISOString();
-
+        portfolioData.portfolio = portfolioData.portfolio || [];
+        portfolioData.portfolio.unshift(newItem);
+        portfolioData.lastUpdated = new Date().toISOString();
+        
         // Update portfolio.json
         const updateResponse = await fetch(portfolioUrl, {
             method: 'PUT',
@@ -273,304 +607,392 @@ async function updatePortfolioJson(title, category, filePath, thumbnailPath, fil
                 'Accept': 'application/vnd.github.v3+json'
             },
             body: JSON.stringify({
-                message: `Add portfolio item: ${title}`,
-                content: btoa(JSON.stringify(data, null, 2)),
-                sha,
+                message: `Add portfolio item: ${newItem.title}`,
+                content: btoa(JSON.stringify(portfolioData, null, 2)),
+                sha: sha,
                 committer: {
-                    name: 'Shahmeer Baqai',
-                    email: 'shahmeer606@gmail.com'
+                    name: 'Portfolio Admin',
+                    email: 'admin@portfolio.com'
                 }
             })
         });
-
-        if (updateResponse.ok) {
-            return { success: true };
-        } else {
-            const error = await updateResponse.json();
-            throw new Error(error.message || 'Failed to update portfolio.json');
+        
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update portfolio.json');
         }
-
+        
     } catch (error) {
         console.error('Portfolio update error:', error);
-        return { success: false, error: error.message };
+        throw error;
     }
 }
 
-// File conversion utilities
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-async function generateThumbnail(file) {
-    const type = file.type;
-
-    if (type.startsWith('image/')) {
-        return await fileToBase64(file);
+// Upload Progress
+function showUploadProgress(show) {
+    const progress = document.getElementById('upload-progress');
+    if (progress) {
+        if (show) {
+            progress.classList.add('active');
+        } else {
+            progress.classList.remove('active');
+        }
     }
+}
 
-    if (type === 'application/pdf') {
-        return 'data:image/svg+xml;base64,' + btoa(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
-                <rect width="200" height="120" fill="#0f111a"/>
-                <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">📄 PDF</text>
-                <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
-            </svg>
-        `);
+function updateUploadProgress(percent, text) {
+    const progressBar = document.querySelector('.progress-bar');
+    const progressText = document.querySelector('.progress-text');
+    
+    if (progressBar) {
+        progressBar.style.setProperty('--progress', `${percent}%`);
+        progressBar.style.background = `linear-gradient(90deg, #00f3ff ${percent}%, #374151 ${percent}%)`;
     }
-
-    if (type.startsWith('video/')) {
-        return 'data:image/svg+xml;base64,' + btoa(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
-                <rect width="200" height="120" fill="#0f111a"/>
-                <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">🎥 Video</text>
-                <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
-            </svg>
-        `);
+    
+    if (progressText) {
+        progressText.textContent = text;
     }
-
-    // Default for DOCX, TXT, etc.
-    return 'data:image/svg+xml;base64,' + btoa(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
-            <rect width="200" height="120" fill="#0f111a"/>
-            <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">📄 Doc</text>
-            <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
-        </svg>
-    `);
 }
 
-// Tab switching
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active', 'text-cyber-blue', 'border-cyber-blue');
-        btn.classList.add('text-gray-400');
-    });
-
-    document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-    event.target.classList.add('active', 'text-cyber-blue', 'border-cyber-blue');
-    event.target.classList.remove('text-gray-400');
-
-    if (tabName === 'portfolio') loadAdminPortfolio();
-    if (tabName === 'messages') loadAdminMessages();
-}
-
-function loadAdminData() {
-    loadAdminPortfolio();
-    loadAdminMessages();
-}
-
+// Load Admin Portfolio
 async function loadAdminPortfolio() {
     const grid = document.getElementById('admin-portfolio-grid');
-    await loadPortfolioFromGitHub();
-
-    if (portfolioData.length === 0) {
+    if (!grid) return;
+    
+    try {
+        // Load from GitHub if possible
+        let portfolioData = [];
+        if (githubToken && githubUsername) {
+            portfolioData = await loadPortfolioFromGitHub();
+        } else {
+            // Fallback to localStorage
+            const stored = localStorage.getItem('portfolio_v2');
+            portfolioData = stored ? JSON.parse(stored) : [];
+        }
+        
+        if (portfolioData.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+                    <p>No portfolio items uploaded yet.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        grid.innerHTML = portfolioData.map(item => `
+            <div class="admin-portfolio-item">
+                <img src="${getFileUrl(item.thumbnail)}" alt="${item.title}" 
+                     onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="250" height="120"><rect width="250" height="120" fill="#374151"/><text x="125" y="60" text-anchor="middle" fill="#9ca3af" font-size="14">No Preview</text></svg>')}'">
+                <h4>${item.title}</h4>
+                <div class="category">${getCategoryName(item.category)}</div>
+                <div class="date">${new Date(item.uploadDate).toLocaleDateString()}</div>
+                <div class="actions">
+                    <button onclick="previewFile('${item.id}')" class="btn btn-primary">Preview</button>
+                    <button onclick="deletePortfolioItem('${item.id}')" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading admin portfolio:', error);
         grid.innerHTML = `
-            <div class="col-span-full text-center py-8">
-                <div class="text-4xl text-gray-600 mb-4">📁</div>
-                <p class="text-gray-400">No portfolio items yet.</p>
+            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #ef4444;">
+                <p>Error loading portfolio items. Please check your connection.</p>
             </div>
         `;
-        return;
     }
-
-    grid.innerHTML = '';
-    portfolioData.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'glass-effect rounded-lg p-4';
-        itemDiv.innerHTML = `
-            <img src="https://raw.githubusercontent.com/${githubUsername}/${githubRepo}/main/${item.thumbnail}" 
-                 alt="${item.title}" class="w-full h-32 object-cover rounded mb-3"
-                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBmMTExYSIvPjx0ZXh0IHg9IjEwMCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5Y2EzYWYiIGZvbnQtc2l6ZT0iMTQiPk5vIFByZXZpZXc8L3RleHQ+PC9zdmc+'">
-            <h4 class="font-semibold text-white mb-1">${item.title}</h4>
-            <p class="text-sm text-gray-400 mb-2">${item.category}</p>
-            <p class="text-xs text-gray-500 mb-3">${new Date(item.uploadDate).toLocaleDateString()}</p>
-            <div class="flex space-x-2">
-                <button onclick="previewFile('${item.id}')" class="text-xs bg-cyber-blue text-dark-bg px-3 py-1 rounded hover:bg-white transition-colors">Preview</button>
-                <button onclick="deletePortfolioItem('${item.id}')" class="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors">Delete</button>
-            </div>
-        `;
-        grid.appendChild(itemDiv);
-    });
 }
 
-// Add this function to fix the missing one
+// Load Portfolio from GitHub
 async function loadPortfolioFromGitHub() {
-    if (!githubToken || !githubUsername) return;
+    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+    
+    const response = await fetch(portfolioUrl, {
+        headers: {
+            'Authorization': `token ${githubToken}`,
+            'Accept': 'application/vnd.github.v3+json'
+        }
+    });
+    
+    if (response.ok) {
+        const fileData = await response.json();
+        const content = atob(fileData.content);
+        const portfolioData = JSON.parse(content);
+        return portfolioData.portfolio || [];
+    }
+    
+    return [];
+}
 
+// Delete Portfolio Item
+async function deletePortfolioItem(id) {
+    if (!confirm('Are you sure you want to delete this portfolio item?')) {
+        return;
+    }
+    
+    if (!githubToken) {
+        showToast('GitHub access required to delete files', 'error');
+        return;
+    }
+    
     try {
-        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-        const response = await fetch(url, {
+        // Find item
+        const portfolioData = await loadPortfolioFromGitHub();
+        const item = portfolioData.find(p => p.id === id);
+        
+        if (!item) {
+            showToast('Item not found', 'error');
+            return;
+        }
+        
+        // Delete files from GitHub
+        await deleteFileFromGitHub(item.file);
+        if (item.thumbnail) {
+            await deleteFileFromGitHub(item.thumbnail);
+        }
+        
+        // Update portfolio.json
+        await removeFromPortfolioJson(id);
+        
+        showToast('Portfolio item deleted successfully');
+        
+        // Reload data
+        setTimeout(() => {
+            loadAdminPortfolio();
+            if (typeof window.loadPortfolioData === 'function') {
+                window.loadPortfolioData();
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Failed to delete item', 'error');
+    }
+}
+
+// Delete File from GitHub
+async function deleteFileFromGitHub(filePath) {
+    try {
+        const getUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
+        
+        const getResponse = await fetch(getUrl, {
             headers: {
                 'Authorization': `token ${githubToken}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-
-        if (response.ok) {
-            const data = await response.json();
-            const content = atob(data.content);
-            const parsed = JSON.parse(content);
-            portfolioData = parsed.portfolio || [];
-        } else {
-            portfolioData = [];
-        }
-    } catch (error) {
-        portfolioData = [];
-        console.error('Failed to load portfolio.json:', error);
-    }
-}
-
-function loadAdminMessages() {
-    const messagesList = document.getElementById('admin-messages-list');
-    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-    
-    if (messages.length === 0) {
-        messagesList.innerHTML = `
-            <div class="text-center py-8">
-                <div class="text-4xl text-gray-600 mb-4">📬</div>
-                <p class="text-gray-400">No messages yet.</p>
-            </div>
-        `;
-        return;
-    }
-
-    messagesList.innerHTML = '';
-    messages.reverse().forEach(message => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `glass-effect rounded-lg p-4 mb-4 ${message.status === 'unread' ? 'border-l-4 border-cyber-blue' : ''}`;
-        messageDiv.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-                <div>
-                    <h4 class="font-semibold text-white">${message.name}</h4>
-                    <p class="text-sm text-cyber-blue">${message.email}</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs text-gray-400">${new Date(message.timestamp).toLocaleDateString()}</p>
-                    <span class="text-xs px-2 py-1 rounded ${message.status === 'unread' ? 'bg-cyber-blue text-dark-bg' : 'bg-gray-600 text-white'}">
-                        ${message.status}
-                    </span>
-                </div>
-            </div>
-            <p class="text-gray-300 whitespace-pre-wrap">${message.message}</p>
-            ${message.status === 'unread' ? `
-                <button onclick="markMessageRead('${message.id}')" class="mt-3 text-sm bg-cyber-blue text-dark-bg px-3 py-1 rounded hover:bg-white transition-colors">
-                    Mark as Read
-                </button>
-            ` : ''}
-        `;
-        messagesList.appendChild(messageDiv);
-    });
-}
-
-async function deletePortfolioItem(id) {
-    if (!confirm('Delete this item?')) return;
-    if (!githubToken) {
-        showToast('GitHub access required', 'error');
-        return;
-    }
-
-    try {
-        const item = portfolioData.find(p => p.id === id);
-        if (!item) return;
-
-        // Delete file
-        await deleteFileFromGitHub(item.file);
-        if (item.thumbnail) await deleteFileFromGitHub(item.thumbnail);
-
-        // Update portfolio.json
-        await removeFromPortfolioJson(id);
-
-        showToast('✅ Item deleted!');
-        setTimeout(loadAdminPortfolio, 2000);
-    } catch (error) {
-        showToast('❌ Delete failed', 'error');
-        console.error('Delete error:', error);
-    }
-}
-
-async function deleteFileFromGitHub(filePath) {
-    try {
-        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
-        const getResponse = await fetch(url, {
-            headers: { 'Authorization': `token ${githubToken}` }
-        });
-
+        
         if (getResponse.ok) {
             const fileData = await getResponse.json();
-            await fetch(url, {
+            
+            const deleteResponse = await fetch(getUrl, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
                 },
                 body: JSON.stringify({
                     message: `Delete: ${filePath}`,
                     sha: fileData.sha,
-                    committer: { name: 'Shahmeer Baqai', email: 'shahmeer606@gmail.com' }
+                    committer: {
+                        name: 'Portfolio Admin',
+                        email: 'admin@portfolio.com'
+                    }
                 })
             });
+            
+            if (!deleteResponse.ok) {
+                throw new Error('Failed to delete file');
+            }
         }
     } catch (error) {
-        console.error('Delete failed:', error);
+        console.error('File deletion error:', error);
     }
 }
 
+// Remove from Portfolio JSON
 async function removeFromPortfolioJson(itemId) {
-    try {
-        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-        const getResponse = await fetch(url, {
-            headers: { 'Authorization': `token ${githubToken}` }
-        });
-
-        if (getResponse.ok) {
-            const fileData = await getResponse.json();
-            const content = atob(fileData.content);
-            const data = JSON.parse(content);
-            data.portfolio = data.portfolio.filter(item => item.id !== itemId);
-            data.lastUpdated = new Date().toISOString();
-
-            await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: `Remove item: ${itemId}`,
-                    content: btoa(JSON.stringify(data, null, 2)),
-                    sha: fileData.sha,
-                    committer: { name: 'Shahmeer Baqai', email: 'shahmeer606@gmail.com' }
-                })
-            });
+    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+    
+    const getResponse = await fetch(portfolioUrl, {
+        headers: {
+            'Authorization': `token ${githubToken}`,
+            'Accept': 'application/vnd.github.v3+json'
         }
-    } catch (error) {
-        console.error('Update failed:', error);
-        throw error;
+    });
+    
+    if (getResponse.ok) {
+        const fileData = await getResponse.json();
+        const content = atob(fileData.content);
+        const portfolioData = JSON.parse(content);
+        
+        // Remove item
+        portfolioData.portfolio = portfolioData.portfolio.filter(item => item.id !== itemId);
+        portfolioData.lastUpdated = new Date().toISOString();
+        
+        // Update portfolio.json
+        const updateResponse = await fetch(portfolioUrl, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${githubToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                message: `Remove portfolio item: ${itemId}`,
+                content: btoa(JSON.stringify(portfolioData, null, 2)),
+                sha: fileData.sha,
+                committer: {
+                    name: 'Portfolio Admin',
+                    email: 'admin@portfolio.com'
+                }
+            })
+        });
+        
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update portfolio.json');
+        }
     }
 }
 
-function markMessageRead(id) {
-    let messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-    const message = messages.find(m => m.id === id);
+// Load Admin Messages
+function loadAdminMessages() {
+    const container = document.getElementById('admin-messages');
+    if (!container) return;
+    
+    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
+    
+    if (messages.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #9ca3af;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📧</div>
+                <p>No messages received yet.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = messages.map(message => `
+        <div class="message-item ${message.read ? '' : 'unread'}">
+            <div class="message-header">
+                <div class="message-from">${message.name}</div>
+                <div class="message-date">${new Date(message.date).toLocaleDateString()}</div>
+            </div>
+            <div class="message-email">${message.email}</div>
+            <div class="message-content">${message.message}</div>
+            <div class="message-actions">
+                ${!message.read ? `<button onclick="markMessageRead('${message.id}')" class="btn btn-primary">Mark Read</button>` : ''}
+                <button onclick="deleteMessage('${message.id}')" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Mark Message as Read
+function markMessageRead(messageId) {
+    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
+    const message = messages.find(m => m.id === messageId);
+    
     if (message) {
-        message.status = 'read';
+        message.read = true;
         localStorage.setItem('messages_v2', JSON.stringify(messages));
         loadAdminMessages();
-        showToast('Marked as read');
+        showToast('Message marked as read');
     }
+}
+
+// Delete Message
+function deleteMessage(messageId) {
+    if (!confirm('Are you sure you want to delete this message?')) {
+        return;
+    }
+    
+    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
+    const filteredMessages = messages.filter(m => m.id !== messageId);
+    localStorage.setItem('messages_v2', JSON.stringify(filteredMessages));
+    
+    loadAdminMessages();
+    showToast('Message deleted');
+}
+
+// Utility Functions
+function getFileUrl(filePath) {
+    if (!filePath) return '';
+    
+    if (filePath.startsWith('http')) {
+        return filePath;
+    }
+    
+    if (githubUsername && githubRepo) {
+        return `https://raw.githubusercontent.com/${githubUsername}/${githubRepo}/main/${filePath}`;
+    }
+    
+    return filePath;
+}
+
+function getCategoryName(category) {
+    const categoryNames = {
+        'ads': 'High-Converting Ads',
+        'videos': 'Viral Videos',
+        'books': 'Books & Podcasts',
+        'email': 'Email Campaigns',
+        'pinterest': 'Pinterest',
+        'tools': 'Web Tools',
+        'ai': 'AI Visuals'
+    };
+    return categoryNames[category] || category;
+}
+
+function clearLoginErrors() {
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) {
+        errorEl.classList.remove('active');
+        errorEl.textContent = '';
+    }
+}
+
+function showLoginError(message) {
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('active');
+    }
+}
+
+function clearGitHubErrors() {
+    const errorEl = document.getElementById('github-error');
+    if (errorEl) {
+        errorEl.classList.remove('active');
+        errorEl.textContent = '';
+    }
+}
+
+function showGitHubError(message) {
+    const errorEl = document.getElementById('github-error');
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('active');
+    }
+}
+
+function clearForm() {
+    const usernameField = document.getElementById('admin-username');
+    const passwordField = document.getElementById('admin-password');
+    
+    if (usernameField) usernameField.value = '';
+    if (passwordField) passwordField.value = '';
 }
 
 // Make functions globally available
 window.showAdminModal = showAdminModal;
 window.hideAdminModal = hideAdminModal;
-window.hideAdminDashboard = hideAdminDashboard;
 window.hideGitHubTokenModal = hideGitHubTokenModal;
+window.hideAdminDashboard = hideAdminDashboard;
 window.showTab = showTab;
 window.deletePortfolioItem = deletePortfolioItem;
 window.markMessageRead = markMessageRead;
+window.deleteMessage = deleteMessage;
 window.loadPortfolioFromGitHub = loadPortfolioFromGitHub;
+
+console.log('Admin.js loaded successfully');
