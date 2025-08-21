@@ -2,11 +2,14 @@
 let isLoggedIn = false;
 let githubToken = null;
 let githubUsername = null;
-let githubRepo = 'ShahmeerBaqai-Portfolio-Pro';
+let githubRepo = 'Portfolio-Pro'; // ✅ Your correct repo name
 
 // Admin credentials
 const ADMIN_USERNAME = 'shahmeer606';
 const ADMIN_PASSWORD = '9MJMKHmjfP695IW';
+
+// Portfolio data (loaded from GitHub)
+let portfolioData = [];
 
 // Check if admin is logged in on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -50,7 +53,7 @@ document.getElementById('admin-login-form').addEventListener('submit', function(
         isLoggedIn = true;
         hideAdminModal();
         showGitHubTokenModal();
-        showToast('Admin login successful! Please enter your GitHub token.');
+        showToast('Admin login successful! Please enter your GitHub token.', 'success');
     } else {
         showToast('Invalid credentials', 'error');
     }
@@ -78,6 +81,10 @@ document.getElementById('github-token-form').addEventListener('submit', async fu
         return;
     }
     
+    // Update global vars
+    githubToken = token;
+    githubUsername = username;
+
     // Test GitHub API access
     try {
         const response = await fetch(`https://api.github.com/repos/${username}/${githubRepo}`, {
@@ -88,16 +95,17 @@ document.getElementById('github-token-form').addEventListener('submit', async fu
         });
         
         if (response.ok) {
-            githubToken = token;
-            githubUsername = username;
             hideGitHubTokenModal();
             showAdminDashboard();
-            showToast('GitHub access verified! You can now upload files.');
+            showToast('GitHub access verified! You can now upload files.', 'success');
+            loadAdminPortfolio(); // Load existing items
         } else {
-            showToast('Invalid GitHub credentials or repository not found', 'error');
+            const error = await response.json();
+            showToast(`GitHub error: ${error.message}`, 'error');
         }
     } catch (error) {
-        showToast('Failed to connect to GitHub. Check your credentials.', 'error');
+        showToast('Failed to connect to GitHub. Check your internet and credentials.', 'error');
+        console.error('GitHub connection error:', error);
     }
 });
 
@@ -105,7 +113,7 @@ document.getElementById('github-token-form').addEventListener('submit', async fu
 document.getElementById('upload-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    if (!isLoggedIn || !githubToken) {
+    if (!isLoggedIn || !githubToken || !githubUsername) {
         showToast('Please login and configure GitHub access first', 'error');
         return;
     }
@@ -120,9 +128,9 @@ document.getElementById('upload-form').addEventListener('submit', async function
         return;
     }
     
-    // Check file size (GitHub has 100MB limit per file)
+    // Check file size (< 100MB for GitHub)
     if (file.size > 100 * 1024 * 1024) {
-        showToast('File size must be less than 100MB for GitHub storage', 'error');
+        showToast('File size must be less than 100MB', 'error');
         return;
     }
     
@@ -133,12 +141,11 @@ document.getElementById('upload-form').addEventListener('submit', async function
         const uploadResult = await uploadFileToGitHub(title, file, category);
         
         if (uploadResult.success) {
-            showToast('File uploaded successfully! Site will update after rebuild.');
+            showToast('✅ File uploaded successfully! Rebuilding site...', 'success');
             e.target.reset();
-            // Reload portfolio data after a delay to allow GitHub to process
-            setTimeout(loadPortfolioFromGitHub, 5000);
+            setTimeout(loadAdminPortfolio, 3000); // Reload after upload
         } else {
-            showToast(`Upload failed: ${uploadResult.error}`, 'error');
+            showToast(`❌ Upload failed: ${uploadResult.error}`, 'error');
         }
         
     } catch (error) {
@@ -152,13 +159,11 @@ async function uploadFileToGitHub(title, file, category) {
         const fileName = file.name;
         const filePath = `uploads/${fileName}`;
         const fileBase64 = await fileToBase64(file);
-        
-        // Remove data URL prefix for GitHub API
-        const base64Content = fileBase64.split(',')[1];
-        
-        // Upload file to GitHub
+        const base64Content = fileBase64.split(',')[1]; // Remove data URL prefix
+
+        // ✅ Clean URL — no extra spaces!
         const fileUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
-        
+
         const fileResponse = await fetch(fileUrl, {
             method: 'PUT',
             headers: {
@@ -170,26 +175,25 @@ async function uploadFileToGitHub(title, file, category) {
                 message: `Upload: ${title}`,
                 content: base64Content,
                 committer: {
-                    name: 'Portfolio Admin',
-                    email: 'admin@portfolio.com'
+                    name: 'Shahmeer Baqai',
+                    email: 'shahmeer606@gmail.com'
                 }
             })
         });
-        
+
         if (!fileResponse.ok) {
             const error = await fileResponse.json();
             throw new Error(error.message || 'Failed to upload file');
         }
-        
-        // Generate and upload thumbnail
-        const thumbnail = await generateThumbnail(file, fileBase64);
-        const thumbnailPath = `uploads/thumbs/${fileName.split('.')[0]}.jpg`;
-        
-        if (thumbnail && thumbnail !== fileBase64) {
+
+        // Generate thumbnail
+        const thumbnail = await generateThumbnail(file);
+        const thumbnailPath = `uploads/thumbs/${fileName.split('.')[0]}.svg`;
+
+        if (thumbnail) {
             const thumbnailBase64 = thumbnail.split(',')[1];
-            
             const thumbnailUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${thumbnailPath}`;
-            
+
             await fetch(thumbnailUrl, {
                 method: 'PUT',
                 headers: {
@@ -201,18 +205,24 @@ async function uploadFileToGitHub(title, file, category) {
                     message: `Thumbnail: ${title}`,
                     content: thumbnailBase64,
                     committer: {
-                        name: 'Portfolio Admin',
-                        email: 'admin@portfolio.com'
+                        name: 'Shahmeer Baqai',
+                        email: 'shahmeer606@gmail.com'
                     }
                 })
             });
         }
-        
+
         // Update portfolio.json
-        const updateResult = await updatePortfolioJson(title, category, filePath, thumbnailPath, file.type);
-        
+        const updateResult = await updatePortfolioJson(
+            title, 
+            category, 
+            filePath, 
+            thumbnailPath, 
+            file.type
+        );
+
         return updateResult;
-        
+
     } catch (error) {
         console.error('GitHub upload error:', error);
         return { success: false, error: error.message };
@@ -221,41 +231,39 @@ async function uploadFileToGitHub(title, file, category) {
 
 async function updatePortfolioJson(title, category, filePath, thumbnailPath, fileType) {
     try {
-        // Get current portfolio.json
         const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-        
+
         const getResponse = await fetch(portfolioUrl, {
             headers: {
                 'Authorization': `token ${githubToken}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-        
-        let portfolioData = { portfolio: [], lastUpdated: new Date().toISOString() };
+
+        let data = { portfolio: [], lastUpdated: new Date().toISOString() };
         let sha = null;
-        
+
         if (getResponse.ok) {
             const fileData = await getResponse.json();
             sha = fileData.sha;
             const content = atob(fileData.content);
-            portfolioData = JSON.parse(content);
+            data = JSON.parse(content);
         }
-        
+
         // Add new item
         const newItem = {
             id: Date.now().toString(),
-            title: title,
-            category: category,
+            title,
+            category,
             file: filePath,
-            type: fileType.split('/')[0], // 'application/pdf' -> 'application'
+            type: fileType.split('/')[0],
             thumbnail: thumbnailPath,
-            uploadDate: new Date().toISOString(),
-            description: `${title} - ${category}`
+            uploadDate: new Date().toISOString()
         };
-        
-        portfolioData.portfolio.push(newItem);
-        portfolioData.lastUpdated = new Date().toISOString();
-        
+
+        data.portfolio.unshift(newItem); // Newest first
+        data.lastUpdated = new Date().toISOString();
+
         // Update portfolio.json
         const updateResponse = await fetch(portfolioUrl, {
             method: 'PUT',
@@ -266,22 +274,22 @@ async function updatePortfolioJson(title, category, filePath, thumbnailPath, fil
             },
             body: JSON.stringify({
                 message: `Add portfolio item: ${title}`,
-                content: btoa(JSON.stringify(portfolioData, null, 2)),
-                sha: sha,
+                content: btoa(JSON.stringify(data, null, 2)),
+                sha,
                 committer: {
-                    name: 'Portfolio Admin',
-                    email: 'admin@portfolio.com'
+                    name: 'Shahmeer Baqai',
+                    email: 'shahmeer606@gmail.com'
                 }
             })
         });
-        
+
         if (updateResponse.ok) {
             return { success: true };
         } else {
             const error = await updateResponse.json();
             throw new Error(error.message || 'Failed to update portfolio.json');
         }
-        
+
     } catch (error) {
         console.error('Portfolio update error:', error);
         return { success: false, error: error.message };
@@ -298,72 +306,57 @@ function fileToBase64(file) {
     });
 }
 
-async function generateThumbnail(file, base64) {
+async function generateThumbnail(file) {
     const type = file.type;
-    
+
     if (type.startsWith('image/')) {
-        return base64; // Use original image as thumbnail
+        return await fileToBase64(file);
     }
-    
+
     if (type === 'application/pdf') {
         return 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-                <rect width="200" height="200" fill="#374151"/>
-                <text x="100" y="80" text-anchor="middle" fill="#00f3ff" font-size="40">📄</text>
-                <text x="100" y="130" text-anchor="middle" fill="#ffffff" font-size="16">PDF</text>
-                <text x="100" y="150" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name}</text>
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
+                <rect width="200" height="120" fill="#0f111a"/>
+                <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">📄 PDF</text>
+                <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
             </svg>
         `);
     }
-    
+
     if (type.startsWith('video/')) {
         return 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-                <rect width="200" height="200" fill="#374151"/>
-                <text x="100" y="80" text-anchor="middle" fill="#00f3ff" font-size="40">🎥</text>
-                <text x="100" y="130" text-anchor="middle" fill="#ffffff" font-size="16">VIDEO</text>
-                <text x="100" y="150" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name}</text>
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
+                <rect width="200" height="120" fill="#0f111a"/>
+                <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">🎥 Video</text>
+                <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
             </svg>
         `);
     }
-    
-    // Default document thumbnail
+
+    // Default for DOCX, TXT, etc.
     return 'data:image/svg+xml;base64,' + btoa(`
-        <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-            <rect width="200" height="200" fill="#374151"/>
-            <text x="100" y="80" text-anchor="middle" fill="#00f3ff" font-size="40">📄</text>
-            <text x="100" y="130" text-anchor="middle" fill="#ffffff" font-size="16">DOC</text>
-            <text x="100" y="150" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name}</text>
+        <svg xmlns="http://www.w3.org/2000/svg" width="200" height="120">
+            <rect width="200" height="120" fill="#0f111a"/>
+            <text x="100" y="60" text-anchor="middle" fill="#00f3ff" font-size="24">📄 Doc</text>
+            <text x="100" y="90" text-anchor="middle" fill="#9ca3af" font-size="12">${file.name.slice(0,16)}...</text>
         </svg>
     `);
 }
 
 // Tab switching
 function showTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.add('hidden');
-    });
-    
-    // Remove active class from all buttons
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active', 'text-cyber-blue', 'border-cyber-blue');
         btn.classList.add('text-gray-400');
     });
-    
-    // Show selected tab
-    document.getElementById(tabName + '-tab').classList.remove('hidden');
-    
-    // Activate button
+
+    document.getElementById(`${tabName}-tab`).classList.remove('hidden');
     event.target.classList.add('active', 'text-cyber-blue', 'border-cyber-blue');
     event.target.classList.remove('text-gray-400');
-    
-    // Load data for specific tabs
-    if (tabName === 'portfolio') {
-        loadAdminPortfolio();
-    } else if (tabName === 'messages') {
-        loadAdminMessages();
-    }
+
+    if (tabName === 'portfolio') loadAdminPortfolio();
+    if (tabName === 'messages') loadAdminMessages();
 }
 
 function loadAdminData() {
@@ -373,40 +366,63 @@ function loadAdminData() {
 
 async function loadAdminPortfolio() {
     const grid = document.getElementById('admin-portfolio-grid');
-    
-    // Load current portfolio data from GitHub
     await loadPortfolioFromGitHub();
-    
+
     if (portfolioData.length === 0) {
         grid.innerHTML = `
             <div class="col-span-full text-center py-8">
                 <div class="text-4xl text-gray-600 mb-4">📁</div>
-                <p class="text-gray-400">No portfolio items uploaded yet.</p>
+                <p class="text-gray-400">No portfolio items yet.</p>
             </div>
         `;
         return;
     }
-    
+
     grid.innerHTML = '';
     portfolioData.forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'glass-effect rounded-lg p-4';
         itemDiv.innerHTML = `
-            <img src="https://raw.githubusercontent.com/${githubUsername}/${githubRepo}/main/${item.thumbnail}" alt="${item.title}" class="w-full h-32 object-cover rounded mb-3" onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="200" height="120" fill="#374151"/><text x="100" y="60" text-anchor="middle" fill="#9ca3af" font-size="14">No Preview</text></svg>')}'">
+            <img src="https://raw.githubusercontent.com/${githubUsername}/${githubRepo}/main/${item.thumbnail}" 
+                 alt="${item.title}" class="w-full h-32 object-cover rounded mb-3"
+                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBmMTExYSIvPjx0ZXh0IHg9IjEwMCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5Y2EzYWYiIGZvbnQtc2l6ZT0iMTQiPk5vIFByZXZpZXc8L3RleHQ+PC9zdmc+'">
             <h4 class="font-semibold text-white mb-1">${item.title}</h4>
             <p class="text-sm text-gray-400 mb-2">${item.category}</p>
             <p class="text-xs text-gray-500 mb-3">${new Date(item.uploadDate).toLocaleDateString()}</p>
             <div class="flex space-x-2">
-                <button onclick="previewFile('${item.id}')" class="text-xs bg-cyber-blue text-dark-bg px-3 py-1 rounded hover:bg-white transition-colors">
-                    Preview
-                </button>
-                <button onclick="deletePortfolioItem('${item.id}')" class="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors">
-                    Delete
-                </button>
+                <button onclick="previewFile('${item.id}')" class="text-xs bg-cyber-blue text-dark-bg px-3 py-1 rounded hover:bg-white transition-colors">Preview</button>
+                <button onclick="deletePortfolioItem('${item.id}')" class="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors">Delete</button>
             </div>
         `;
         grid.appendChild(itemDiv);
     });
+}
+
+// Add this function to fix the missing one
+async function loadPortfolioFromGitHub() {
+    if (!githubToken || !githubUsername) return;
+
+    try {
+        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `token ${githubToken}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const content = atob(data.content);
+            const parsed = JSON.parse(content);
+            portfolioData = parsed.portfolio || [];
+        } else {
+            portfolioData = [];
+        }
+    } catch (error) {
+        portfolioData = [];
+        console.error('Failed to load portfolio.json:', error);
+    }
 }
 
 function loadAdminMessages() {
@@ -417,12 +433,12 @@ function loadAdminMessages() {
         messagesList.innerHTML = `
             <div class="text-center py-8">
                 <div class="text-4xl text-gray-600 mb-4">📬</div>
-                <p class="text-gray-400">No messages received yet.</p>
+                <p class="text-gray-400">No messages yet.</p>
             </div>
         `;
         return;
     }
-    
+
     messagesList.innerHTML = '';
     messages.reverse().forEach(message => {
         const messageDiv = document.createElement('div');
@@ -452,136 +468,88 @@ function loadAdminMessages() {
 }
 
 async function deletePortfolioItem(id) {
-    if (!confirm('Are you sure you want to delete this portfolio item?')) {
-        return;
-    }
-    
+    if (!confirm('Delete this item?')) return;
     if (!githubToken) {
-        showToast('GitHub access required to delete files', 'error');
+        showToast('GitHub access required', 'error');
         return;
     }
-    
+
     try {
         const item = portfolioData.find(p => p.id === id);
-        if (!item) {
-            showToast('Item not found', 'error');
-            return;
-        }
-        
-        // Delete file from GitHub
+        if (!item) return;
+
+        // Delete file
         await deleteFileFromGitHub(item.file);
-        
-        // Delete thumbnail if exists
-        if (item.thumbnail) {
-            await deleteFileFromGitHub(item.thumbnail);
-        }
-        
+        if (item.thumbnail) await deleteFileFromGitHub(item.thumbnail);
+
         // Update portfolio.json
         await removeFromPortfolioJson(id);
-        
-        showToast('Portfolio item deleted successfully');
-        
-        // Reload data
-        setTimeout(async () => {
-            await loadPortfolioFromGitHub();
-            loadPortfolioGrid();
-            loadAdminPortfolio();
-        }, 2000);
-        
+
+        showToast('✅ Item deleted!');
+        setTimeout(loadAdminPortfolio, 2000);
     } catch (error) {
+        showToast('❌ Delete failed', 'error');
         console.error('Delete error:', error);
-        showToast('Failed to delete item', 'error');
     }
 }
 
 async function deleteFileFromGitHub(filePath) {
     try {
-        // Get file SHA first
-        const getUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
-        const getResponse = await fetch(getUrl, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
+        const getResponse = await fetch(url, {
+            headers: { 'Authorization': `token ${githubToken}` }
         });
-        
+
         if (getResponse.ok) {
             const fileData = await getResponse.json();
-            
-            // Delete the file
-            const deleteResponse = await fetch(getUrl, {
+            await fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     message: `Delete: ${filePath}`,
                     sha: fileData.sha,
-                    committer: {
-                        name: 'Portfolio Admin',
-                        email: 'admin@portfolio.com'
-                    }
+                    committer: { name: 'Shahmeer Baqai', email: 'shahmeer606@gmail.com' }
                 })
             });
-            
-            if (!deleteResponse.ok) {
-                throw new Error('Failed to delete file');
-            }
         }
     } catch (error) {
-        console.error('File deletion error:', error);
-        // Don't throw - file might not exist
+        console.error('Delete failed:', error);
     }
 }
 
 async function removeFromPortfolioJson(itemId) {
     try {
-        // Get current portfolio.json
-        const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-        
-        const getResponse = await fetch(portfolioUrl, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+        const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
+        const getResponse = await fetch(url, {
+            headers: { 'Authorization': `token ${githubToken}` }
         });
-        
+
         if (getResponse.ok) {
             const fileData = await getResponse.json();
             const content = atob(fileData.content);
-            const portfolioData = JSON.parse(content);
-            
-            // Remove item
-            portfolioData.portfolio = portfolioData.portfolio.filter(item => item.id !== itemId);
-            portfolioData.lastUpdated = new Date().toISOString();
-            
-            // Update portfolio.json
-            const updateResponse = await fetch(portfolioUrl, {
+            const data = JSON.parse(content);
+            data.portfolio = data.portfolio.filter(item => item.id !== itemId);
+            data.lastUpdated = new Date().toISOString();
+
+            await fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message: `Remove portfolio item: ${itemId}`,
-                    content: btoa(JSON.stringify(portfolioData, null, 2)),
+                    message: `Remove item: ${itemId}`,
+                    content: btoa(JSON.stringify(data, null, 2)),
                     sha: fileData.sha,
-                    committer: {
-                        name: 'Portfolio Admin',
-                        email: 'admin@portfolio.com'
-                    }
+                    committer: { name: 'Shahmeer Baqai', email: 'shahmeer606@gmail.com' }
                 })
             });
-            
-            if (!updateResponse.ok) {
-                throw new Error('Failed to update portfolio.json');
-            }
         }
     } catch (error) {
-        console.error('Portfolio update error:', error);
+        console.error('Update failed:', error);
         throw error;
     }
 }
@@ -593,14 +561,11 @@ function markMessageRead(id) {
         message.status = 'read';
         localStorage.setItem('messages_v2', JSON.stringify(messages));
         loadAdminMessages();
-        showToast('Message marked as read');
+        showToast('Marked as read');
     }
 }
 
-// Add missing functions for GitHub admin system
-window.loadPortfolioFromGitHub = loadPortfolioFromGitHub;
-
-// Make functions global for HTML onclick handlers
+// Make functions globally available
 window.showAdminModal = showAdminModal;
 window.hideAdminModal = hideAdminModal;
 window.hideAdminDashboard = hideAdminDashboard;
@@ -608,3 +573,4 @@ window.hideGitHubTokenModal = hideGitHubTokenModal;
 window.showTab = showTab;
 window.deletePortfolioItem = deletePortfolioItem;
 window.markMessageRead = markMessageRead;
+window.loadPortfolioFromGitHub = loadPortfolioFromGitHub;
