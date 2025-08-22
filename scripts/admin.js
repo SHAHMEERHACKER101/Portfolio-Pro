@@ -336,8 +336,9 @@ class AdminManager {
             // Convert file to base64 using binary-safe method
             const base64Content = await this.fileToBase64(file);
             
-            // Upload file to GitHub
-            const filePath = `uploads/${Date.now()}-${file.name}`;
+            // Upload file to GitHub with clean filename
+            const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filePath = `uploads/${cleanFileName}`;
             await this.uploadToGitHub(filePath, base64Content);
             
             // Update portfolio.json
@@ -348,7 +349,8 @@ class AdminManager {
                 fileName: file.name,
                 filePath: filePath,
                 uploadDate: new Date().toISOString(),
-                description: `${category} project - ${title}`
+                description: `${category} project - ${title}`,
+                downloadUrl: `https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${filePath}`
             });
             
             this.hideUploadProgress();

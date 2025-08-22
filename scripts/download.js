@@ -11,8 +11,30 @@ class DownloadHandler {
             // Show loading state
             this.showDownloadState(fileName, 'downloading');
             
-            // Attempt download with retry logic
-            const blob = await this.fetchFileWithRetry(filePath);
+            console.log(`Starting download: ${fileName} from ${filePath}`);
+            
+            // Try multiple URL strategies
+            const urls = this.constructAllPossibleUrls(filePath, fileName);
+            console.log('Trying URLs:', urls);
+            
+            let blob = null;
+            let lastError = null;
+            
+            for (const url of urls) {
+                try {
+                    console.log(`Attempting download from: ${url}`);
+                    blob = await this.fetchFileFromUrl(url);
+                    console.log(`Successfully downloaded from: ${url}`);
+                    break;
+                } catch (error) {
+                    console.warn(`Failed to download from ${url}:`, error.message);
+                    lastError = error;
+                }
+            }
+            
+            if (!blob) {
+                throw lastError || new Error('All download attempts failed');
+            }
             
             // Create download
             this.triggerDownload(blob, fileName);
@@ -27,59 +49,88 @@ class DownloadHandler {
         }
     }
     
-    async fetchFileWithRetry(filePath, retryCount = 0) {
-        try {
-            // Construct the full URL for the file
-            const fileUrl = this.constructFileUrl(filePath);
-            
-            const response = await fetch(fileUrl, {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                },
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const blob = await response.blob();
-            
-            // Validate blob
-            if (blob.size === 0) {
-                throw new Error('Downloaded file is empty');
-            }
-            
-            return blob;
-            
-        } catch (error) {
-            if (retryCount < this.maxRetries) {
-                console.warn(`Download attempt ${retryCount + 1} failed, retrying...`, error);
-                await this.delay(this.retryDelay * (retryCount + 1));
-                return this.fetchFileWithRetry(filePath, retryCount + 1);
-            }
-            
-            throw error;
+    async fetchFileFromUrl(url) {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Cache-Control': 'no-cache',
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
+        // Handle GitHub API response (content endpoint)
+        if (url.includes('api.github.com')) {
+            const data = await response.json();
+            if (data.content) {
+                // Decode base64 content
+                const binaryString = atob(data.content.replace(/\s/g, ''));
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return new Blob([bytes]);
+            }
+            throw new Error('No content found in API response');
+        }
+        
+        // Handle direct file response
+        const blob = await response.blob();
+        
+        // Validate blob
+        if (blob.size === 0) {
+            throw new Error('Downloaded file is empty');
+        }
+        
+        return blob;
     }
     
-    constructFileUrl(filePath) {
-        // Handle different URL patterns
+    constructAllPossibleUrls(filePath, fileName) {
+        const urls = [];
+        
+        // If it's already a full URL, use it
         if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-            return filePath;
+            urls.push(filePath);
+            return urls;
         }
         
-        // For GitHub raw files - properly encode spaces and special characters
+        // Method 1: Direct GitHub raw URL using the file path as stored
         if (filePath.startsWith('uploads/')) {
-            // Encode the entire path properly
-            const encodedPath = filePath.replace(/ /g, '%20').replace(/[^a-zA-Z0-9\/\-_.~]/g, encodeURIComponent);
-            const githubRawUrl = `https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${encodedPath}`;
-            return githubRawUrl;
+            const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/');
+            urls.push(`https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${encodedPath}`);
         }
         
-        // Fallback to relative URL
+        // Method 2: GitHub raw URL with manual space encoding
+        if (filePath.startsWith('uploads/')) {
+            const spacesEncodedPath = filePath.replace(/ /g, '%20');
+            urls.push(`https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${spacesEncodedPath}`);
+        }
+        
+        // Method 3: Construct URL from filename (if filePath seems wrong)
+        if (fileName && filePath.startsWith('uploads/')) {
+            const fileNameEncoded = encodeURIComponent(fileName);
+            urls.push(`https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/uploads/${fileNameEncoded}`);
+        }
+        
+        // Method 4: Try with simple space replacement
+        if (filePath.startsWith('uploads/') && fileName) {
+            const simpleEncoded = fileName.replace(/ /g, '%20');
+            urls.push(`https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/uploads/${simpleEncoded}`);
+        }
+        
+        // Method 5: GitHub API content URL (alternative)
+        if (filePath.startsWith('uploads/')) {
+            const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/');
+            urls.push(`https://api.github.com/repos/SHAHMEERHACKER101/Portfolio-Pro/contents/${encodedPath}`);
+        }
+        
+        // Method 6: Fallback to relative URL (for local testing)
         const encodedPath = filePath.replace(/ /g, '%20');
-        return window.location.origin + '/' + encodedPath;
+        urls.push(window.location.origin + '/' + encodedPath);
+        
+        return urls;
     }
     
     triggerDownload(blob, fileName) {

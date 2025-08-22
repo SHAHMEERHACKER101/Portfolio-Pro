@@ -350,7 +350,7 @@ class ShahmeerPortfolio {
                     </div>
                 </div>
                 ${item.description ? `<p class="card-description" data-testid="text-card-description-${item.id}">${this.escapeHtml(item.description)}</p>` : ''}
-                <button class="download-button" data-testid="button-download-${item.id}" onclick="downloadHandler.downloadFile('${item.filePath}', '${item.fileName}')">
+                <button class="download-button" data-testid="button-download-${item.id}" onclick="downloadHandler.downloadFile('${item.downloadUrl || item.filePath}', '${item.fileName}')">
                     Download
                 </button>
             </div>
