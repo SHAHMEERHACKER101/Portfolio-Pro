@@ -323,7 +323,13 @@ class AdminManager {
         }
         
         if (!githubUsername || !githubToken) {
-            this.showMessage('Please configure GitHub credentials.', 'error');
+            this.showMessage('Please configure GitHub credentials first. You need:\n1. GitHub Username: SHAHMEERHACKER101\n2. Personal Access Token with "repo" permissions', 'error');
+            return;
+        }
+        
+        // Validate GitHub token format
+        if (!githubToken.startsWith('ghp_') && !githubToken.startsWith('github_pat_')) {
+            this.showMessage('Invalid GitHub token format. It should start with "ghp_" or "github_pat_"', 'error');
             return;
         }
         
@@ -331,6 +337,9 @@ class AdminManager {
         this.githubConfig.token = githubToken;
         
         try {
+            // Test GitHub credentials before uploading
+            await this.testGitHubCredentials();
+            
             this.showUploadProgress();
             
             // Convert file to base64 using binary-safe method
@@ -369,7 +378,15 @@ class AdminManager {
         } catch (error) {
             this.hideUploadProgress();
             console.error('Upload error:', error);
-            this.showMessage('Upload failed: ' + error.message, 'error');
+            
+            let errorMessage = error.message;
+            if (errorMessage.includes('Bad credentials')) {
+                errorMessage = 'GitHub credentials are invalid. Please check:\n1. Username: SHAHMEERHACKER101\n2. Personal Access Token has "repo" permissions\n3. Token is not expired';
+            } else if (errorMessage.includes('Not Found')) {
+                errorMessage = 'Repository not found. Make sure the username is "SHAHMEERHACKER101" and repository "Portfolio-Pro" exists.';
+            }
+            
+            this.showMessage('Upload failed: ' + errorMessage, 'error');
         }
     }
     
@@ -388,6 +405,31 @@ class AdminManager {
             reader.onerror = reject;
             reader.readAsArrayBuffer(file);
         });
+    }
+    
+    // Test GitHub credentials
+    async testGitHubCredentials() {
+        const url = `https://api.github.com/repos/${this.githubConfig.username}/${this.githubConfig.repo}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `token ${this.githubConfig.token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Bad credentials - GitHub token is invalid or expired');
+            } else if (response.status === 404) {
+                throw new Error('Repository not found - check username and repo name');
+            } else {
+                throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+            }
+        }
+        
+        return response.json();
     }
     
     // GitHub API Integration

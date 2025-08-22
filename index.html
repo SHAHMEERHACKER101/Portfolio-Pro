@@ -31,12 +31,6 @@
     <!-- Three.js Background -->
     <canvas id="three-canvas" data-testid="three-canvas"></canvas>
 
-    <!-- Admin Button (Top Right) -->
-    <div class="admin-area">
-        <button class="admin-button" data-testid="button-admin" onclick="toggleAdminPanel()">
-            Admin
-        </button>
-    </div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -124,26 +118,101 @@
             </div>
         </section>
 
-        <!-- Portfolio Section -->
-        <section class="portfolio-section">
-            <div class="portfolio-container">
-                <h2 class="portfolio-title" data-testid="text-portfolio-title">Portfolio</h2>
+        <!-- Professional Skills Section -->
+        <section class="professional-skills-section">
+            <div class="professional-skills-container">
+                <h2 class="professional-skills-title" data-testid="text-professional-skills-title">Professional Expertise</h2>
+                <p class="professional-skills-subtitle">10+ Years of Digital Excellence</p>
                 
-                <!-- Portfolio Grid -->
-                <div id="portfolio-grid" class="portfolio-grid" data-testid="portfolio-grid">
-                    <!-- Portfolio items will be dynamically loaded here -->
+                <div class="skills-expertise-grid" data-testid="skills-expertise-grid">
+                    <!-- Copywriting Skills -->
+                    <div class="skill-expertise-card expert-10" data-testid="skill-copywriting">
+                        <div class="skill-icon">✍️</div>
+                        <h3 class="skill-name">Copywriting</h3>
+                        <div class="skill-experience">10 Years</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">High-converting sales copy, ads, and marketing content</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-10" data-testid="skill-content-writing">
+                        <div class="skill-icon">📝</div>
+                        <h3 class="skill-name">Content Writing</h3>
+                        <div class="skill-experience">10 Years</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Engaging blogs, articles, and website content</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-5" data-testid="skill-academic-writing">
+                        <div class="skill-icon">🎓</div>
+                        <h3 class="skill-name">Academic Writing</h3>
+                        <div class="skill-experience">5 Years</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Research papers, theses, and scholarly content</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-seo-writing">
+                        <div class="skill-icon">🔍</div>
+                        <h3 class="skill-name">SEO Writing</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Search-optimized content that ranks and converts</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-graphic-design">
+                        <div class="skill-icon">🎨</div>
+                        <h3 class="skill-name">Graphic Design</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">AI-powered visuals and brand design</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-video-services">
+                        <div class="skill-icon">🎬</div>
+                        <h3 class="skill-name">Video Services</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">AI video creation, editing, and film design</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-video-editing">
+                        <div class="skill-icon">✂️</div>
+                        <h3 class="skill-name">Video Editing</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Professional editing with CapCut and AI tools</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-web-development">
+                        <div class="skill-icon">💻</div>
+                        <h3 class="skill-name">Web Development</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Chrome extensions, web apps, and programming</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-social-marketing">
+                        <div class="skill-icon">📱</div>
+                        <h3 class="skill-name">Social Marketing</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Platform strategy and viral content creation</p>
+                    </div>
+                    
+                    <div class="skill-expertise-card expert-0" data-testid="skill-app-development">
+                        <div class="skill-icon">📱</div>
+                        <h3 class="skill-name">App Development</h3>
+                        <div class="skill-experience">Latest Expertise</div>
+                        <div class="skill-level expert">Expert</div>
+                        <p class="skill-desc">Android apps and mobile solutions</p>
+                    </div>
                 </div>
                 
-                <!-- No Projects State -->
-                <div id="no-projects" class="no-projects-state hidden" data-testid="no-projects-state">
-                    <div class="no-projects-icon">📁</div>
-                    <p class="no-projects-text" data-testid="text-no-projects">No projects yet. Log in to upload.</p>
-                </div>
-                
-                <!-- Loading State -->
-                <div id="loading-state" class="loading-state hidden" data-testid="loading-state">
-                    <div class="loader"></div>
-                    <p data-testid="text-loading">Loading portfolio...</p>
+                <!-- View Portfolio Button -->
+                <div class="portfolio-cta-section">
+                    <button id="view-portfolio-btn" class="view-portfolio-button" data-testid="button-view-portfolio">
+                        <span class="button-text">View Portfolio</span>
+                        <div class="button-glow"></div>
+                    </button>
                 </div>
             </div>
         </section>
@@ -194,147 +263,11 @@
         </div>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="admin-panel" class="modal admin-modal hidden" data-testid="modal-admin">
-        <div class="modal-content admin-content">
-            <!-- Admin Login -->
-            <div id="admin-login" class="admin-login" data-testid="admin-login">
-                <h2 class="admin-title" data-testid="text-admin-title">Admin Access</h2>
-                
-                <div class="admin-login-form">
-                    <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input id="admin-username" type="text" class="form-input" data-testid="input-admin-username" placeholder="shahmeer606">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input id="admin-password" type="password" class="form-input" data-testid="input-admin-password">
-                    </div>
-                    <button id="admin-login-btn" class="form-submit" data-testid="button-admin-login">
-                        Login
-                    </button>
-                    <div id="login-error" class="error-message hidden" data-testid="text-login-error"></div>
-                    <div id="lockout-message" class="error-message hidden" data-testid="text-lockout-message"></div>
-                </div>
-                
-                <button id="close-admin" class="modal-close admin-close" data-testid="button-close-admin">&times;</button>
-            </div>
-
-            <!-- Admin Dashboard -->
-            <div id="admin-dashboard" class="admin-dashboard hidden" data-testid="admin-dashboard">
-                <div class="admin-header">
-                    <h2 class="admin-title" data-testid="text-dashboard-title">Admin Dashboard</h2>
-                    <div class="admin-actions">
-                        <button id="admin-logout" class="admin-logout" data-testid="button-admin-logout">Logout</button>
-                        <button id="close-admin-dashboard" class="modal-close" data-testid="button-close-dashboard">&times;</button>
-                    </div>
-                </div>
-
-                <!-- GitHub Setup -->
-                <div class="admin-section">
-                    <h3 class="section-title" data-testid="text-github-title">GitHub Configuration</h3>
-                    <div class="github-config">
-                        <div class="form-group">
-                            <label class="form-label">GitHub Username</label>
-                            <input id="github-username" type="text" class="form-input" data-testid="input-github-username" placeholder="SHAHMEERHACKER101">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Personal Access Token</label>
-                            <input id="github-token" type="password" class="form-input" data-testid="input-github-token" placeholder="ghp_...">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Repository</label>
-                            <input id="github-repo" type="text" class="form-input" data-testid="input-github-repo" value="Portfolio-Pro" readonly>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Upload Form -->
-                <div class="admin-section">
-                    <h3 class="section-title" data-testid="text-upload-title">Upload New Project</h3>
-                    <form id="upload-form" class="upload-form" data-testid="form-upload">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">Title</label>
-                                <input id="project-title" type="text" class="form-input" data-testid="input-project-title" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Category</label>
-                                <select id="project-category" class="form-input" data-testid="select-project-category" required>
-                                    <option value="">Select Category</option>
-                                    <option value="Copywriting">Copywriting</option>
-                                    <option value="Video Production">Video Production</option>
-                                    <option value="Strategy">Strategy</option>
-                                    <option value="Design">Design</option>
-                                    <option value="Email Marketing">Email Marketing</option>
-                                    <option value="Analytics">Analytics</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="upload-area" data-testid="upload-area">
-                            <input id="project-file" type="file" class="file-input hidden" data-testid="input-project-file" accept=".pdf,.docx,.mp4,.mov,.zip,.txt" required>
-                            <div id="upload-placeholder" class="upload-placeholder" data-testid="upload-placeholder">
-                                <div class="upload-icon">📁</div>
-                                <p class="upload-text">Click to select file or drag & drop</p>
-                                <p class="upload-subtext">Supports: PDF, DOCX, MP4, MOV, ZIP, TXT (up to 100MB)</p>
-                            </div>
-                            <div id="file-info" class="file-info hidden" data-testid="file-info">
-                                <div class="file-icon">📄</div>
-                                <p id="file-name" class="file-name" data-testid="text-file-name"></p>
-                                <p id="file-size" class="file-size" data-testid="text-file-size"></p>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="form-submit upload-submit" data-testid="button-upload-project">
-                            Upload Project
-                        </button>
-                        
-                        <div id="upload-progress" class="upload-progress hidden" data-testid="upload-progress">
-                            <div class="progress-bar">
-                                <div id="progress-fill" class="progress-fill" data-testid="progress-fill"></div>
-                            </div>
-                            <p id="progress-text" class="progress-text" data-testid="text-progress">Uploading...</p>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Portfolio Management -->
-                <div class="admin-section">
-                    <h3 class="section-title" data-testid="text-manage-title">Manage Portfolio</h3>
-                    
-                    <div id="admin-portfolio-grid" class="admin-portfolio-grid" data-testid="admin-portfolio-grid">
-                        <!-- Portfolio items will be dynamically loaded here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal delete-modal hidden" data-testid="modal-delete">
-        <div class="modal-content delete-content">
-            <h3 class="delete-title" data-testid="text-delete-title">Confirm Delete</h3>
-            <p class="delete-message" data-testid="text-delete-message">
-                Delete '<span id="delete-item-name" data-testid="text-delete-item-name">filename.pdf</span>'? This cannot be undone.
-            </p>
-            <div class="delete-actions">
-                <button id="cancel-delete" class="delete-cancel" data-testid="button-cancel-delete">
-                    Cancel
-                </button>
-                <button id="confirm-delete" class="delete-confirm" data-testid="button-confirm-delete">
-                    Delete
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Success/Error Messages -->
     <div id="message-container" class="message-container" data-testid="message-container"></div>
 
     <!-- Scripts -->
-    <script src="/scripts/download.js"></script>
-    <script src="/scripts/admin.js"></script>
     <script src="/scripts/main.js"></script>
 </body>
 </html>

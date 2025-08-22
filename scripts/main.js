@@ -1,8 +1,6 @@
 // Main Application Logic
 class ShahmeerPortfolio {
     constructor() {
-        this.portfolioData = [];
-        this.isLoading = false;
         this.cursor = null;
         this.trails = [];
         this.scene = null;
@@ -16,12 +14,9 @@ class ShahmeerPortfolio {
         // Initialize all components
         this.initCursor();
         this.init3DBackground();
-        this.initPortfolioCards();
+        this.initSkillCards();
         this.initAnimations();
         this.initEventListeners();
-        
-        // Load portfolio data
-        await this.loadPortfolio();
     }
     
     // Custom Cursor System
@@ -63,7 +58,7 @@ class ShahmeerPortfolio {
         
         // Scale cursor on hover
         document.addEventListener('mouseover', (e) => {
-            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('portfolio-card'))) {
+            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('skill-expertise-card'))) {
                 if (this.cursor) {
                     this.cursor.style.transform = 'scale(1.5)';
                 }
@@ -71,7 +66,7 @@ class ShahmeerPortfolio {
         }, true);
         
         document.addEventListener('mouseout', (e) => {
-            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('portfolio-card'))) {
+            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('skill-expertise-card'))) {
                 if (this.cursor) {
                     this.cursor.style.transform = 'scale(1)';
                 }
@@ -173,45 +168,29 @@ class ShahmeerPortfolio {
         });
     }
     
-    // Portfolio Card 3D Tilt Effects
-    initPortfolioCards() {
-        const updateCardTilts = () => {
-            const cards = document.querySelectorAll('.portfolio-card');
-            
-            cards.forEach(card => {
-                // Remove existing listeners
-                card.removeEventListener('mousemove', card._tiltHandler);
-                card.removeEventListener('mouseleave', card._resetHandler);
+    // Skill Card 3D Tilt Effects
+    initSkillCards() {
+        const cards = document.querySelectorAll('.skill-expertise-card');
+        
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
                 
-                // Add new listeners
-                card._tiltHandler = (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    const rotateX = (y - centerY) / 10;
-                    const rotateY = (centerX - x) / 10;
-                    
-                    card.style.transform = `translateY(-10px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-                };
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
                 
-                card._resetHandler = () => {
-                    card.style.transform = 'translateY(0) rotateX(0) rotateY(0)';
-                };
+                const rotateX = (y - centerY) / 15;
+                const rotateY = (centerX - x) / 15;
                 
-                card.addEventListener('mousemove', card._tiltHandler);
-                card.addEventListener('mouseleave', card._resetHandler);
+                card.style.transform = `translateY(-10px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
             });
-        };
-        
-        // Initial setup
-        updateCardTilts();
-        
-        // Update when portfolio changes
-        this.updateCardTilts = updateCardTilts;
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0) rotateX(0) rotateY(0)';
+            });
+        });
     }
     
     // GSAP Animations
@@ -224,23 +203,125 @@ class ShahmeerPortfolio {
         gsap.registerPlugin(ScrollTrigger);
         
         // Logo animation
-        gsap.from('[data-3d-logo]', {
-            duration: 2,
-            scale: 0,
-            rotation: 360,
-            ease: 'back.out(1.7)'
-        });
-        
-        // Portfolio cards animation
-        gsap.from('.portfolio-card', {
-            duration: 1,
-            y: 100,
-            opacity: 0,
-            stagger: 0.2,
-            scrollTrigger: {
-                trigger: '#portfolio-grid',
-                start: 'top 80%'
+        gsap.fromTo('[data-3d-logo]', 
+            { rotationY: -180, opacity: 0 },
+            { 
+                rotationY: 0, 
+                opacity: 1, 
+                duration: 2, 
+                ease: 'power2.out',
+                delay: 0.5
             }
+        );
+        
+        // Hero text animations
+        gsap.fromTo('.hero-name', 
+            { y: 50, opacity: 0 },
+            { 
+                y: 0, 
+                opacity: 1, 
+                duration: 1, 
+                ease: 'power2.out',
+                delay: 1
+            }
+        );
+        
+        gsap.fromTo('.hero-tagline', 
+            { y: 30, opacity: 0 },
+            { 
+                y: 0, 
+                opacity: 1, 
+                duration: 1, 
+                ease: 'power2.out',
+                delay: 1.2
+            }
+        );
+        
+        // Skills cards animation
+        gsap.fromTo('.skill-card', 
+            { y: 50, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.skills-section',
+                    start: 'top 80%'
+                }
+            }
+        );
+        
+        // Professional skills cards animation
+        gsap.fromTo('.skill-expertise-card', 
+            { y: 50, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.professional-skills-section',
+                    start: 'top 80%'
+                }
+            }
+        );
+        
+        // View Portfolio Button Animation
+        gsap.fromTo('.view-portfolio-button', 
+            { y: 30, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.portfolio-cta-section',
+                    start: 'top 80%'
+                }
+            }
+        );
+        
+        // Reviews animation
+        gsap.fromTo('.review-card', 
+            { y: 50, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.reviews-section',
+                    start: 'top 80%'
+                }
+            }
+        );
+        
+        // About section animation
+        gsap.fromTo('.about-quote', 
+            { y: 50, opacity: 0 },
+            {
+                y: 0,
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out',
+                scrollTrigger: {
+                    trigger: '.about-section',
+                    start: 'top 80%'
+                }
+            }
+        );
+        
+        // Scroll indicator animation
+        gsap.to('.scroll-dot', {
+            y: 10,
+            duration: 1.5,
+            repeat: -1,
+            yoyo: true,
+            ease: 'power2.inOut'
         });
     }
     
@@ -252,280 +333,74 @@ class ShahmeerPortfolio {
         const closeContact = document.getElementById('close-contact');
         const contactForm = document.getElementById('contact-form');
         
-        if (contactBtn) {
-            contactBtn.addEventListener('click', () => this.toggleModal('contact-modal'));
-        }
-        
-        if (closeContact) {
-            closeContact.addEventListener('click', () => this.hideModal('contact-modal'));
-        }
-        
-        if (contactForm) {
-            contactForm.addEventListener('submit', (e) => this.handleContactSubmit(e));
-        }
-        
-        // Click outside to close modals
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                this.hideModal(e.target.id);
-            }
-        });
-        
-        // Escape key to close modals
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.hideAllModals();
-            }
-        });
-    }
-    
-    // Portfolio Data Management
-    async loadPortfolio() {
-        this.showLoading();
-        
-        try {
-            const response = await fetch('/data/portfolio.json');
-            if (response.ok) {
-                const data = await response.json();
-                this.portfolioData = data.portfolio || [];
-            } else {
-                this.portfolioData = [];
-            }
-        } catch (error) {
-            console.error('Error loading portfolio:', error);
-            this.portfolioData = [];
-        }
-        
-        this.hideLoading();
-        this.renderPortfolio();
-    }
-    
-    renderPortfolio() {
-        const grid = document.getElementById('portfolio-grid');
-        const noProjects = document.getElementById('no-projects');
-        
-        if (!grid) return;
-        
-        if (this.portfolioData.length === 0) {
-            grid.innerHTML = '';
-            if (noProjects) {
-                noProjects.classList.remove('hidden');
-            }
-            return;
-        }
-        
-        if (noProjects) {
-            noProjects.classList.add('hidden');
-        }
-        
-        grid.innerHTML = this.portfolioData.map(item => this.createPortfolioCard(item)).join('');
-        
-        // Re-initialize card effects
-        if (this.updateCardTilts) {
-            this.updateCardTilts();
-        }
-        
-        // Re-animate cards if GSAP is available
-        if (typeof gsap !== 'undefined') {
-            gsap.from('.portfolio-card', {
-                duration: 0.6,
-                y: 50,
-                opacity: 0,
-                stagger: 0.1
+        if (contactBtn && contactModal) {
+            contactBtn.addEventListener('click', () => {
+                contactModal.classList.remove('hidden');
             });
         }
-    }
-    
-    createPortfolioCard(item) {
-        const fileExt = this.getFileExtension(item.fileName);
-        const iconClass = this.getFileIconClass(fileExt);
         
-        return `
-            <div class="portfolio-card" data-testid="card-portfolio-${item.id}">
-                <div class="card-header">
-                    <div class="file-icon ${iconClass}">${fileExt.toUpperCase()}</div>
-                    <div class="card-info">
-                        <h3 data-testid="text-card-title-${item.id}">${this.escapeHtml(item.title)}</h3>
-                        <p data-testid="text-card-category-${item.id}">${this.escapeHtml(item.category)}</p>
-                    </div>
-                </div>
-                ${item.description ? `<p class="card-description" data-testid="text-card-description-${item.id}">${this.escapeHtml(item.description)}</p>` : ''}
-                <button class="download-button" data-testid="button-download-${item.id}" onclick="downloadHandler.downloadFile('${item.downloadUrl || item.filePath}', '${item.fileName}')">
-                    Download
-                </button>
-            </div>
-        `;
-    }
-    
-    getFileExtension(fileName) {
-        return fileName.split('.').pop().toLowerCase();
-    }
-    
-    getFileIconClass(extension) {
-        const iconMap = {
-            'pdf': 'pdf-icon',
-            'docx': 'docx-icon',
-            'doc': 'docx-icon',
-            'mp4': 'mp4-icon',
-            'mov': 'mp4-icon',
-            'zip': 'zip-icon',
-            'txt': 'txt-icon'
-        };
-        
-        return iconMap[extension] || 'default-icon';
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // Loading States
-    showLoading() {
-        this.isLoading = true;
-        const loadingState = document.getElementById('loading-state');
-        const portfolioGrid = document.getElementById('portfolio-grid');
-        const noProjects = document.getElementById('no-projects');
-        
-        if (loadingState) {
-            loadingState.classList.remove('hidden');
-        }
-        if (portfolioGrid) {
-            portfolioGrid.innerHTML = '';
-        }
-        if (noProjects) {
-            noProjects.classList.add('hidden');
-        }
-    }
-    
-    hideLoading() {
-        this.isLoading = false;
-        const loadingState = document.getElementById('loading-state');
-        if (loadingState) {
-            loadingState.classList.add('hidden');
-        }
-    }
-    
-    // Modal Management
-    toggleModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.toggle('hidden');
-        }
-    }
-    
-    showModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
-    }
-    
-    hideModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-    
-    hideAllModals() {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(modal => modal.classList.add('hidden'));
-    }
-    
-    // Contact Form
-    async handleContactSubmit(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(e.target);
-        const data = {
-            name: formData.get('name') || document.getElementById('contact-name').value,
-            email: formData.get('email') || document.getElementById('contact-email').value,
-            message: formData.get('message') || document.getElementById('contact-message').value
-        };
-        
-        // Validate data
-        if (!data.name || !data.email || !data.message) {
-            this.showMessage('Please fill in all fields.', 'error');
-            return;
+        if (closeContact && contactModal) {
+            closeContact.addEventListener('click', () => {
+                contactModal.classList.add('hidden');
+            });
         }
         
-        // Simple email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.email)) {
-            this.showMessage('Please enter a valid email address.', 'error');
-            return;
+        // View Portfolio Button
+        const viewPortfolioBtn = document.getElementById('view-portfolio-btn');
+        if (viewPortfolioBtn) {
+            viewPortfolioBtn.addEventListener('click', () => {
+                window.open('https://portfolio-files.pages.dev/', '_blank');
+            });
         }
         
-        try {
-            // In a real implementation, this would send to a contact API
-            // For now, we'll simulate success
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            this.showMessage('Message sent successfully! We\'ll get back to you soon.', 'success');
-            this.hideModal('contact-modal');
-            e.target.reset();
-        } catch (error) {
-            console.error('Contact form error:', error);
-            this.showMessage('Failed to send message. Please try again.', 'error');
+        // Contact form submission
+        if (contactForm) {
+            contactForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                // Get form data
+                const name = document.getElementById('contact-name').value;
+                const email = document.getElementById('contact-email').value;
+                const message = document.getElementById('contact-message').value;
+                
+                // Create mailto link
+                const subject = encodeURIComponent(`Portfolio Contact from ${name}`);
+                const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`);
+                const mailtoLink = `mailto:shahmeerbaqai@gmail.com?subject=${subject}&body=${body}`;
+                
+                // Open email client
+                window.location.href = mailtoLink;
+                
+                // Close modal
+                contactModal.classList.add('hidden');
+                
+                // Reset form
+                contactForm.reset();
+            });
         }
-    }
-    
-    // Message System
-    showMessage(text, type = 'info') {
-        const container = document.getElementById('message-container');
-        if (!container) return;
         
-        const message = document.createElement('div');
-        message.className = `message ${type}`;
-        message.innerHTML = `<p class="message-text">${this.escapeHtml(text)}</p>`;
-        
-        container.appendChild(message);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (message.parentNode) {
-                message.remove();
+        // Close modals on background click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.add('hidden');
             }
-        }, 5000);
-    }
-    
-    // Refresh portfolio (called after uploads/deletes)
-    async refreshPortfolio() {
-        await this.loadPortfolio();
+        });
+        
+        // Smooth scrolling for navigation
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('[href^="#"]')) {
+                e.preventDefault();
+                const target = document.querySelector(e.target.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
     }
 }
 
-// Global functions for HTML onclick handlers
-function toggleAdminPanel() {
-    if (window.adminManager) {
-        window.adminManager.toggleAdminPanel();
-    }
-}
-
-// Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize main portfolio
+// Initialize the application
+window.addEventListener('DOMContentLoaded', () => {
     window.portfolioApp = new ShahmeerPortfolio();
-    
     console.log('Shahmeer Baqai Portfolio initialized');
-});
-
-// Handle page visibility changes
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        // Pause animations when page is hidden
-        if (window.portfolioApp && window.portfolioApp.renderer) {
-            window.portfolioApp.renderer.setAnimationLoop(null);
-        }
-    } else {
-        // Resume animations when page is visible
-        if (window.portfolioApp && window.portfolioApp.renderer) {
-            const animate = () => {
-                window.portfolioApp.renderer.setAnimationLoop(animate);
-            };
-            animate();
-        }
-    }
 });

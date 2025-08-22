@@ -309,73 +309,217 @@ body {
     font-size: 0.875rem;
 }
 
-/* Portfolio Section */
-.portfolio-section {
+/* Professional Skills Section */
+.professional-skills-section {
     padding: 5rem 1rem;
     background: rgba(255, 255, 255, 0.01);
 }
 
-.portfolio-container {
+.professional-skills-container {
     max-width: 1400px;
     margin: 0 auto;
 }
 
-.portfolio-title {
+.professional-skills-title {
+    font-family: 'Orbitron', monospace;
     font-size: clamp(2.5rem, 6vw, 4rem);
     font-weight: 700;
-    text-align: center;
-    margin-bottom: 4rem;
     color: var(--cyber);
-}
-
-.portfolio-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-}
-
-.portfolio-card {
-    background: var(--gray-900);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-style: preserve-3d;
-    perspective: 1000px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.portfolio-card:hover {
-    transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
-    box-shadow: 0 25px 50px -12px rgba(0, 243, 255, 0.25);
-    background: var(--gray-800);
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    text-align: center;
     margin-bottom: 1rem;
+    text-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
 }
 
-.file-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.5rem;
-    font-weight: bold;
-    color: var(--space);
-    font-size: 0.75rem;
-    flex-shrink: 0;
+.professional-skills-subtitle {
+    text-align: center;
+    color: var(--gray-300);
+    font-size: 1.2rem;
+    margin-bottom: 4rem;
+    font-weight: 300;
 }
 
-.pdf-icon { background: var(--red-500); }
-.docx-icon { background: hsl(210, 100%, 55%); }
-.mp4-icon { background: hsl(270, 70%, 55%); }
-.zip-icon { background: hsl(35, 90%, 55%); }
-.txt-icon { background: var(--green-500); }
-.default-icon { background: var(--gray-700); }
+.skills-expertise-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 4rem;
+}
+
+.skill-expertise-card {
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: 1rem;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.skill-expertise-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--cyber), transparent, var(--cyber));
+    border-radius: 1rem;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.skill-expertise-card:hover::before {
+    opacity: 1;
+}
+
+.skill-expertise-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--cyber);
+    box-shadow: 0 20px 40px rgba(0, 243, 255, 0.3);
+}
+
+.skill-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.skill-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    color: var(--white);
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+}
+
+.skill-experience {
+    color: var(--cyber);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.skill-level {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: linear-gradient(45deg, #10b981, #059669);
+    color: var(--white);
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.skill-desc {
+    color: var(--gray-300);
+    line-height: 1.5;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Expert level styling */
+.expert-10 {
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.expert-10:hover {
+    border-color: gold;
+    box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+}
+
+.expert-5 {
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.expert-5:hover {
+    border-color: #22c55e;
+    box-shadow: 0 20px 40px rgba(34, 197, 94, 0.3);
+}
+
+/* Portfolio CTA Section */
+.portfolio-cta-section {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.view-portfolio-button {
+    position: relative;
+    padding: 1.25rem 3.75rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--white);
+    background: linear-gradient(45deg, var(--cyber), #0066cc);
+    border: none;
+    border-radius: 3rem;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    font-family: 'Orbitron', monospace;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+    animation: wobble 2s infinite ease-in-out;
+}
+
+.view-portfolio-button:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 0 50px rgba(0, 243, 255, 0.6);
+    animation: wobble-fast 0.5s infinite ease-in-out;
+}
+
+.button-glow {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--cyber), transparent, var(--cyber), transparent, var(--cyber));
+    border-radius: 3rem;
+    z-index: -1;
+    opacity: 0;
+    animation: glow-pulse 2s infinite ease-in-out;
+}
+
+.view-portfolio-button:hover .button-glow {
+    opacity: 1;
+    animation: glow-pulse-fast 0.5s infinite ease-in-out;
+}
+
+.button-text {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes wobble {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(1deg); }
+    75% { transform: rotate(-1deg); }
+}
+
+@keyframes wobble-fast {
+    0%, 100% { transform: translateY(-5px) scale(1.05) rotate(0deg); }
+    25% { transform: translateY(-5px) scale(1.05) rotate(2deg); }
+    75% { transform: translateY(-5px) scale(1.05) rotate(-2deg); }
+}
+
+@keyframes glow-pulse {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes glow-pulse-fast {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
 
 .card-info h3 {
     font-weight: 600;
@@ -577,6 +721,14 @@ body {
 .form-input:focus {
     outline: none;
     border-color: var(--cyber);
+}
+
+.form-help {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    margin-top: 0.25rem;
+    line-height: 1.4;
 }
 
 .form-textarea {
@@ -1012,7 +1164,7 @@ body {
         padding: 0.5rem;
     }
     
-    .portfolio-section,
+    .professional-skills-section,
     .about-section {
         padding: 3rem 0.5rem;
     }

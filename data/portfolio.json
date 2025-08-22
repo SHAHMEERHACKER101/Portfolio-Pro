@@ -1,14 +1,3 @@
 {
-  "portfolio": [
-    {
-      "id": "1755850898595",
-      "title": "new item ",
-      "category": "Copywriting",
-      "fileName": "download (1).docx",
-      "filePath": "uploads/download__1_.docx",
-      "uploadDate": "2025-08-22T08:21:38.595Z",
-      "description": "Copywriting project - new item ",
-      "downloadUrl": "https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/uploads/download__1_.docx"
-    }
-  ]
+  "portfolio": []
 }
