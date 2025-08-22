@@ -1,998 +1,906 @@
-// Admin system with GitHub integration
-let githubToken = null;
-let githubUsername = null;
-let githubRepo = 'Portfolio-Pro';
-let adminSession = null;
+// Admin Panel JavaScript for Shahmeer Baqai Portfolio
+// Handles authentication, GitHub integration, and portfolio management
 
-// Admin credentials
-const ADMIN_USERNAME = 'shahmeer606';
-const ADMIN_PASSWORD = '9MJMKHmjfP695IW';
+class AdminManager {
+    constructor() {
+        this.isAuthenticated = false;
+        this.isLocked = false;
+        this.failedAttempts = 0;
+        this.lockoutEndTime = null;
+        this.githubConfig = null;
+        this.currentView = 'login'; // login, github, dashboard
+        
+        // Admin credentials (in production, these should be environment variables)
+        this.ADMIN_USERNAME = 'shahmeer606';
+        this.ADMIN_PASSWORD = '9MJMKHmjfP695IW';
+        
+        this.init();
+    }
 
-// Initialize admin system when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Admin system initializing...');
-    
-    // Check for existing session
-    checkAdminSession();
-    
-    // Initialize event listeners
-    initAdminEventListeners();
-    
-    console.log('Admin system ready');
-});
+    init() {
+        this.checkAuthState();
+        this.checkLockoutState();
+        this.loadGitHubConfig();
+        this.setupEventListeners();
+    }
 
-// Initialize Event Listeners
-function initAdminEventListeners() {
-    // Admin button click
-    const adminBtn = document.getElementById('admin-btn');
-    if (adminBtn) {
-        adminBtn.addEventListener('click', showAdminModal);
-        console.log('Admin button listener attached');
-    } else {
-        console.error('Admin button not found');
-    }
-    
-    // Admin login form
-    const loginForm = document.getElementById('admin-login-form');
-    const loginBtn = document.getElementById('admin-login-btn');
-    
-    if (loginBtn) {
-        loginBtn.addEventListener('click', handleAdminLogin);
-        console.log('Login button listener attached');
-    }
-    
-    // GitHub connect button
-    const githubConnectBtn = document.getElementById('github-connect-btn');
-    if (githubConnectBtn) {
-        githubConnectBtn.addEventListener('click', handleGitHubConnect);
-    }
-    
-    // Upload form
-    const uploadForm = document.getElementById('upload-form');
-    if (uploadForm) {
-        uploadForm.addEventListener('submit', handleFileUpload);
-    }
-    
-    // Tab navigation
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const tabName = btn.textContent.toLowerCase();
-            showTab(tabName);
-        });
-    });
-    
-    // Enter key support for login
-    document.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const modal = document.getElementById('admin-modal');
-            if (modal && modal.classList.contains('active')) {
-                if (document.getElementById('admin-login-form').style.display !== 'none') {
-                    handleAdminLogin();
-                }
-            }
+    checkAuthState() {
+        const authState = localStorage.getItem('adminAuthenticated');
+        if (authState === 'true') {
+            this.isAuthenticated = true;
+            this.updateAdminButton();
         }
-    });
-}
+    }
 
-// Check Admin Session
-function checkAdminSession() {
-    const stored = localStorage.getItem('admin_session');
-    if (stored) {
-        try {
-            adminSession = JSON.parse(stored);
-            const now = Date.now();
-            
-            // Check if session is valid (24 hours)
-            if (adminSession.expires > now) {
-                console.log('Valid admin session found');
-                return true;
+    checkLockoutState() {
+        const lockoutTime = localStorage.getItem('adminLockout');
+        if (lockoutTime) {
+            const lockoutEnd = parseInt(lockoutTime);
+            if (Date.now() < lockoutEnd) {
+                this.isLocked = true;
+                this.lockoutEndTime = lockoutEnd;
+                
+                const timeLeft = lockoutEnd - Date.now();
+                setTimeout(() => {
+                    this.isLocked = false;
+                    this.lockoutEndTime = null;
+                    localStorage.removeItem('adminLockout');
+                }, timeLeft);
             } else {
-                localStorage.removeItem('admin_session');
-                adminSession = null;
+                localStorage.removeItem('adminLockout');
             }
-        } catch (e) {
-            localStorage.removeItem('admin_session');
-            adminSession = null;
         }
     }
-    return false;
-}
 
-// Show Admin Modal
-function showAdminModal() {
-    console.log('Showing admin modal');
-    
-    const modal = document.getElementById('admin-modal');
-    if (!modal) {
-        console.error('Admin modal not found in DOM');
-        return;
-    }
-    
-    // Check if account is locked
-    if (isAccountLocked()) {
-        showLockoutMessage();
-        return;
-    }
-    
-    modal.classList.add('active');
-    
-    // Focus on username field
-    setTimeout(() => {
-        const usernameField = document.getElementById('admin-username');
-        if (usernameField) {
-            usernameField.focus();
-        }
-    }, 100);
-}
-
-// Hide Admin Modal
-function hideAdminModal() {
-    const modal = document.getElementById('admin-modal');
-    if (modal) {
-        modal.classList.remove('active');
-        clearLoginErrors();
-        clearForm();
-    }
-}
-
-// Handle Admin Login
-function handleAdminLogin() {
-    console.log('Handling admin login...');
-    
-    const username = document.getElementById('admin-username').value.trim();
-    const password = document.getElementById('admin-password').value;
-    
-    clearLoginErrors();
-    
-    if (!username || !password) {
-        showLoginError('Please enter both username and password');
-        return;
-    }
-    
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Successful login
-        console.log('Login successful');
-        
-        // Clear failed attempts
-        clearFailedAttempts();
-        
-        // Create session
-        adminSession = {
-            username: username,
-            loginTime: Date.now(),
-            expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        };
-        localStorage.setItem('admin_session', JSON.stringify(adminSession));
-        
-        // Hide login modal and show GitHub setup
-        hideAdminModal();
-        showGitHubTokenModal();
-        
-    } else {
-        // Failed login
-        console.log('Login failed');
-        handleFailedLogin();
-        showLoginError('Invalid username or password');
-    }
-}
-
-// Handle Failed Login
-function handleFailedLogin() {
-    let attempts = JSON.parse(localStorage.getItem('admin_attempts') || '{"count": 0, "lastAttempt": 0}');
-    
-    attempts.count++;
-    attempts.lastAttempt = Date.now();
-    
-    localStorage.setItem('admin_attempts', JSON.stringify(attempts));
-    
-    if (attempts.count >= 2) {
-        // Lock account for 15 minutes
-        const lockUntil = Date.now() + (15 * 60 * 1000);
-        localStorage.setItem('admin_locked_until', lockUntil.toString());
-        showLockoutMessage();
-        hideAdminModal();
-    }
-}
-
-// Check if Account is Locked
-function isAccountLocked() {
-    const lockUntil = localStorage.getItem('admin_locked_until');
-    if (lockUntil) {
-        const now = Date.now();
-        if (now < parseInt(lockUntil)) {
-            return true;
-        } else {
-            // Lock expired, clear it
-            localStorage.removeItem('admin_locked_until');
-            clearFailedAttempts();
-        }
-    }
-    return false;
-}
-
-// Show Lockout Message
-function showLockoutMessage() {
-    const lockUntil = localStorage.getItem('admin_locked_until');
-    if (lockUntil) {
-        const remaining = Math.ceil((parseInt(lockUntil) - Date.now()) / 60000);
-        showToast(`Account locked. Try again in ${remaining} minutes.`, 'error');
-    }
-}
-
-// Clear Failed Attempts
-function clearFailedAttempts() {
-    localStorage.removeItem('admin_attempts');
-    localStorage.removeItem('admin_locked_until');
-}
-
-// Show GitHub Token Modal
-function showGitHubTokenModal() {
-    console.log('Showing GitHub token modal');
-    
-    const modal = document.getElementById('github-token-modal');
-    if (modal) {
-        modal.classList.add('active');
-        
-        // Pre-fill repo name
-        const repoField = document.getElementById('github-repo');
-        if (repoField && !repoField.value) {
-            repoField.value = githubRepo;
-        }
-        
-        // Focus on username field
-        setTimeout(() => {
-            const usernameField = document.getElementById('github-username');
-            if (usernameField) {
-                usernameField.focus();
+    loadGitHubConfig() {
+        const stored = localStorage.getItem('githubConfig');
+        if (stored) {
+            try {
+                this.githubConfig = JSON.parse(stored);
+            } catch (e) {
+                console.error('Error loading GitHub config:', e);
             }
-        }, 100);
-    }
-}
-
-// Hide GitHub Token Modal
-function hideGitHubTokenModal() {
-    const modal = document.getElementById('github-token-modal');
-    if (modal) {
-        modal.classList.remove('active');
-        clearGitHubErrors();
-    }
-}
-
-// Handle GitHub Connect
-function handleGitHubConnect() {
-    console.log('Connecting to GitHub...');
-    
-    const username = document.getElementById('github-username').value.trim();
-    const token = document.getElementById('github-token').value.trim();
-    const repo = document.getElementById('github-repo').value.trim();
-    
-    clearGitHubErrors();
-    
-    if (!username || !token || !repo) {
-        showGitHubError('Please fill in all fields');
-        return;
-    }
-    
-    // Store credentials in memory
-    githubUsername = username;
-    githubToken = token;
-    githubRepo = repo;
-    
-    // Make them globally available
-    window.githubUsername = username;
-    window.githubRepo = repo;
-    
-    // Test connection
-    testGitHubConnection()
-        .then(() => {
-            console.log('GitHub connection successful');
-            hideGitHubTokenModal();
-            showAdminDashboard();
-            showToast('Connected to GitHub successfully!');
-        })
-        .catch((error) => {
-            console.error('GitHub connection failed:', error);
-            showGitHubError('Failed to connect to GitHub. Please check your credentials.');
-        });
-}
-
-// Test GitHub Connection
-async function testGitHubConnection() {
-    const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}`;
-    
-    const response = await fetch(url, {
-        headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
         }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
-    return response.json();
-}
 
-// Show Admin Dashboard
-function showAdminDashboard() {
-    console.log('Showing admin dashboard');
-    
-    const modal = document.getElementById('admin-dashboard');
-    if (modal) {
-        modal.classList.add('active');
-        
-        // Load dashboard data
-        loadAdminPortfolio();
-        loadAdminMessages();
-        
-        // Show upload tab by default
-        showTab('upload');
-    }
-}
-
-// Hide Admin Dashboard
-function hideAdminDashboard() {
-    const modal = document.getElementById('admin-dashboard');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-// Show Tab
-function showTab(tabName) {
-    console.log(`Switching to ${tabName} tab`);
-    
-    // Update tab buttons
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.textContent.toLowerCase() === tabName) {
-            btn.classList.add('active');
-        }
-    });
-    
-    // Update tab content
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(content => {
-        content.classList.remove('active');
-    });
-    
-    const activeTab = document.getElementById(`${tabName}-tab`);
-    if (activeTab) {
-        activeTab.classList.add('active');
-    }
-    
-    // Refresh data for specific tabs
-    if (tabName === 'portfolio') {
-        loadAdminPortfolio();
-    } else if (tabName === 'messages') {
-        loadAdminMessages();
-    }
-}
-
-// Handle File Upload
-async function handleFileUpload(e) {
-    e.preventDefault();
-    console.log('Handling file upload...');
-    
-    if (!githubToken || !githubUsername) {
-        showToast('GitHub connection required', 'error');
-        return;
-    }
-    
-    const fileInput = document.getElementById('file-input');
-    const titleInput = document.getElementById('file-title');
-    const categoryInput = document.getElementById('file-category');
-    
-    const file = fileInput.files[0];
-    const title = titleInput.value.trim();
-    const category = categoryInput.value;
-    
-    if (!file || !title) {
-        showToast('Please select a file and enter a title', 'error');
-        return;
-    }
-    
-    if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        showToast('File size must be under 100MB', 'error');
-        return;
-    }
-    
-    try {
-        showUploadProgress(true);
-        updateUploadProgress(10, 'Reading file...');
-        
-        // Convert file to base64
-        const base64 = await fileToBase64(file);
-        updateUploadProgress(30, 'Uploading to GitHub...');
-        
-        // Generate filename
-        const timestamp = Date.now();
-        const extension = file.name.split('.').pop();
-        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.${extension}`;
-        const filePath = `uploads/${filename}`;
-        
-        // Upload file to GitHub
-        await uploadFileToGitHub(filePath, base64, `Upload: ${title}`);
-        updateUploadProgress(60, 'Generating thumbnail...');
-        
-        // Generate thumbnail if applicable
-        let thumbnailPath = null;
-        if (file.type.startsWith('image/')) {
-            const thumbnailBase64 = await generateImageThumbnail(file);
-            thumbnailPath = `uploads/thumbs/${filename}.jpg`;
-            await uploadFileToGitHub(thumbnailPath, thumbnailBase64, `Thumbnail: ${title}`);
-        } else {
-            // Create a placeholder thumbnail
-            const placeholderSvg = createPlaceholderThumbnail(title, getFileTypeIcon(file.type));
-            const placeholderBase64 = btoa(placeholderSvg);
-            thumbnailPath = `uploads/thumbs/${filename}.svg`;
-            await uploadFileToGitHub(thumbnailPath, placeholderBase64, `Thumbnail: ${title}`);
-        }
-        
-        updateUploadProgress(80, 'Updating portfolio...');
-        
-        // Update portfolio.json
-        const portfolioItem = {
-            id: timestamp.toString(),
-            title: title,
-            category: category,
-            file: filePath,
-            thumbnail: thumbnailPath,
-            uploadDate: new Date().toISOString(),
-            fileSize: file.size,
-            fileType: file.type
-        };
-        
-        await updatePortfolioJson(portfolioItem);
-        updateUploadProgress(100, 'Upload complete!');
-        
-        showToast('File uploaded successfully!');
-        
-        // Reset form
-        document.getElementById('upload-form').reset();
-        
-        // Refresh portfolio after delay
-        setTimeout(() => {
-            loadAdminPortfolio();
-            if (typeof window.loadPortfolioData === 'function') {
-                window.loadPortfolioData();
-            }
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Upload error:', error);
-        showToast(`Upload failed: ${error.message}`, 'error');
-    } finally {
-        showUploadProgress(false);
-    }
-}
-
-// Convert File to Base64
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-// Upload File to GitHub
-async function uploadFileToGitHub(path, content, message) {
-    const url = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${path}`;
-    
-    const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-            'Authorization': `token ${githubToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json'
-        },
-        body: JSON.stringify({
-            message: message,
-            content: content,
-            committer: {
-                name: 'Portfolio Admin',
-                email: 'admin@portfolio.com'
-            }
-        })
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
-    }
-    
-    return response.json();
-}
-
-// Generate Image Thumbnail
-function generateImageThumbnail(file) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        
-        img.onload = () => {
-            canvas.width = 300;
-            canvas.height = 200;
-            
-            // Calculate dimensions to maintain aspect ratio
-            const aspectRatio = img.width / img.height;
-            let drawWidth = canvas.width;
-            let drawHeight = canvas.height;
-            
-            if (aspectRatio > canvas.width / canvas.height) {
-                drawHeight = canvas.width / aspectRatio;
-            } else {
-                drawWidth = canvas.height * aspectRatio;
-            }
-            
-            const x = (canvas.width - drawWidth) / 2;
-            const y = (canvas.height - drawHeight) / 2;
-            
-            ctx.fillStyle = '#374151';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, x, y, drawWidth, drawHeight);
-            
-            const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-            resolve(base64);
-        };
-        
-        img.src = URL.createObjectURL(file);
-    });
-}
-
-// Create Placeholder Thumbnail
-function createPlaceholderThumbnail(title, icon) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
-        <rect width="300" height="200" fill="#374151"/>
-        <text x="150" y="80" text-anchor="middle" fill="#00f3ff" font-size="40">${icon}</text>
-        <text x="150" y="130" text-anchor="middle" fill="#ffffff" font-size="16">${title.substring(0, 20)}</text>
-        <text x="150" y="150" text-anchor="middle" fill="#9ca3af" font-size="12">Click to preview</text>
-    </svg>`;
-}
-
-// Get File Type Icon
-function getFileTypeIcon(type) {
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('video')) return '🎬';
-    if (type.includes('image')) return '🖼️';
-    if (type.includes('audio')) return '🎵';
-    if (type.includes('zip') || type.includes('archive')) return '📦';
-    if (type.includes('text') || type.includes('document')) return '📝';
-    return '📁';
-}
-
-// Update Portfolio JSON
-async function updatePortfolioJson(newItem) {
-    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-    
-    try {
-        // Get current portfolio.json
-        const getResponse = await fetch(portfolioUrl, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        });
-        
-        let portfolioData = { portfolio: [], lastUpdated: new Date().toISOString() };
-        let sha = null;
-        
-        if (getResponse.ok) {
-            const fileData = await getResponse.json();
-            const content = atob(fileData.content);
-            portfolioData = JSON.parse(content);
-            sha = fileData.sha;
-        }
-        
-        // Add new item
-        portfolioData.portfolio = portfolioData.portfolio || [];
-        portfolioData.portfolio.unshift(newItem);
-        portfolioData.lastUpdated = new Date().toISOString();
-        
-        // Update portfolio.json
-        const updateResponse = await fetch(portfolioUrl, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
-            },
-            body: JSON.stringify({
-                message: `Add portfolio item: ${newItem.title}`,
-                content: btoa(JSON.stringify(portfolioData, null, 2)),
-                sha: sha,
-                committer: {
-                    name: 'Portfolio Admin',
-                    email: 'admin@portfolio.com'
+    setupEventListeners() {
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', () => {
+                if (this.isAuthenticated) {
+                    this.showDashboard();
+                } else {
+                    this.showLoginModal();
                 }
-            })
-        });
-        
-        if (!updateResponse.ok) {
-            throw new Error('Failed to update portfolio.json');
-        }
-        
-    } catch (error) {
-        console.error('Portfolio update error:', error);
-        throw error;
-    }
-}
-
-// Upload Progress
-function showUploadProgress(show) {
-    const progress = document.getElementById('upload-progress');
-    if (progress) {
-        if (show) {
-            progress.classList.add('active');
-        } else {
-            progress.classList.remove('active');
+            });
         }
     }
-}
 
-function updateUploadProgress(percent, text) {
-    const progressBar = document.querySelector('.progress-bar');
-    const progressText = document.querySelector('.progress-text');
-    
-    if (progressBar) {
-        progressBar.style.setProperty('--progress', `${percent}%`);
-        progressBar.style.background = `linear-gradient(90deg, #00f3ff ${percent}%, #374151 ${percent}%)`;
-    }
-    
-    if (progressText) {
-        progressText.textContent = text;
-    }
-}
-
-// Load Admin Portfolio
-async function loadAdminPortfolio() {
-    const grid = document.getElementById('admin-portfolio-grid');
-    if (!grid) return;
-    
-    try {
-        // Load from GitHub if possible
-        let portfolioData = [];
-        if (githubToken && githubUsername) {
-            portfolioData = await loadPortfolioFromGitHub();
-        } else {
-            // Fallback to localStorage
-            const stored = localStorage.getItem('portfolio_v2');
-            portfolioData = stored ? JSON.parse(stored) : [];
+    updateAdminButton() {
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn && this.isAuthenticated) {
+            const unreadCount = this.getUnreadMessagesCount();
+            if (unreadCount > 0) {
+                adminBtn.innerHTML = `Dashboard <span class="bg-red-500 text-xs px-2 py-1 rounded-full ml-2">${unreadCount}</span>`;
+            } else {
+                adminBtn.textContent = 'Dashboard';
+            }
         }
+    }
+
+    getUnreadMessagesCount() {
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        return messages.filter(msg => !msg.read).length;
+    }
+
+    showLoginModal() {
+        const adminModal = document.getElementById('admin-modal');
+        const adminContent = document.getElementById('admin-content');
         
-        if (portfolioData.length === 0) {
-            grid.innerHTML = `
-                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #9ca3af;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                    <p>No portfolio items uploaded yet.</p>
+        if (this.isLocked) {
+            const remainingMinutes = Math.ceil(this.getRemainingLockoutTime() / 1000 / 60);
+            adminContent.innerHTML = `
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold mb-8 text-white">Admin Access</h2>
+                    <p class="text-red-400 mb-4">
+                        Account locked. Try again in ${remainingMinutes} minutes.
+                    </p>
+                    <button onclick="adminManager.closeModal()" class="w-full bg-gray-600 text-white hover:bg-gray-700 px-6 py-3 rounded-lg">
+                        Close
+                    </button>
                 </div>
             `;
-            return;
+        } else {
+            adminContent.innerHTML = `
+                <div>
+                    <h2 class="text-3xl font-bold mb-8 text-center text-white">Admin Access</h2>
+                    <form id="login-form" class="space-y-4">
+                        <input
+                            type="text"
+                            id="login-username"
+                            placeholder="Username"
+                            class="w-full px-4 py-3 bg-dark-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue"
+                            required
+                        />
+                        <div class="relative">
+                            <input
+                                type="password"
+                                id="login-password"
+                                placeholder="Password"
+                                class="w-full px-4 py-3 bg-dark-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue pr-12"
+                                required
+                            />
+                            <button
+                                type="button"
+                                id="toggle-password"
+                                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="flex space-x-4">
+                            <button
+                                type="submit"
+                                class="flex-1 bg-cyber-blue text-dark-bg hover:bg-white font-bold py-3 rounded-lg transition-colors"
+                            >
+                                Login
+                            </button>
+                            <button
+                                type="button"
+                                onclick="adminManager.closeModal()"
+                                class="flex-1 bg-gray-600 text-white hover:bg-gray-700 py-3 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            // Setup form handler
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+            }
+
+            // Setup password toggle
+            const togglePassword = document.getElementById('toggle-password');
+            const passwordInput = document.getElementById('login-password');
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', () => {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                });
+            }
         }
         
-        grid.innerHTML = portfolioData.map(item => `
-            <div class="admin-portfolio-item">
-                <img src="${getFileUrl(item.thumbnail)}" alt="${item.title}" 
-                     onerror="this.src='data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="250" height="120"><rect width="250" height="120" fill="#374151"/><text x="125" y="60" text-anchor="middle" fill="#9ca3af" font-size="14">No Preview</text></svg>')}'">
-                <h4>${item.title}</h4>
-                <div class="category">${getCategoryName(item.category)}</div>
-                <div class="date">${new Date(item.uploadDate).toLocaleDateString()}</div>
-                <div class="actions">
-                    <button onclick="previewFile('${item.id}')" class="btn btn-primary">Preview</button>
-                    <button onclick="deletePortfolioItem('${item.id}')" class="btn btn-danger">Delete</button>
+        adminModal.classList.remove('hidden');
+    }
+
+    handleLogin(e) {
+        e.preventDefault();
+        
+        if (this.isLocked) {
+            const remainingTime = Math.ceil(this.getRemainingLockoutTime() / 1000 / 60);
+            alert(`Account locked. Try again in ${remainingTime} minutes.`);
+            return;
+        }
+
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (username === this.ADMIN_USERNAME && password === this.ADMIN_PASSWORD) {
+            this.isAuthenticated = true;
+            this.failedAttempts = 0;
+            localStorage.setItem('adminAuthenticated', 'true');
+            localStorage.removeItem('adminLockout');
+            
+            if (this.githubConfig) {
+                this.showDashboard();
+            } else {
+                this.showGitHubSetup();
+            }
+            
+            this.updateAdminButton();
+            alert('Login successful!');
+        } else {
+            this.failedAttempts++;
+            
+            if (this.failedAttempts >= 2) {
+                // Lock for 15 minutes
+                const lockoutEnd = Date.now() + (15 * 60 * 1000);
+                this.isLocked = true;
+                this.lockoutEndTime = lockoutEnd;
+                localStorage.setItem('adminLockout', lockoutEnd.toString());
+                
+                setTimeout(() => {
+                    this.isLocked = false;
+                    this.lockoutEndTime = null;
+                    this.failedAttempts = 0;
+                    localStorage.removeItem('adminLockout');
+                }, 15 * 60 * 1000);
+                
+                this.showLoginModal(); // Refresh to show locked state
+            }
+            
+            alert('Invalid credentials. Please try again.');
+        }
+    }
+
+    getRemainingLockoutTime() {
+        if (!this.lockoutEndTime) return 0;
+        return Math.max(0, this.lockoutEndTime - Date.now());
+    }
+
+    showGitHubSetup() {
+        const adminContent = document.getElementById('admin-content');
+        adminContent.innerHTML = `
+            <div>
+                <h2 class="text-3xl font-bold mb-8 text-center text-white">GitHub Configuration</h2>
+                <form id="github-form" class="space-y-4">
+                    <input
+                        type="text"
+                        id="github-username"
+                        placeholder="GitHub Username"
+                        class="w-full px-4 py-3 bg-dark-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue"
+                        required
+                    />
+                    <div class="relative">
+                        <input
+                            type="password"
+                            id="github-token"
+                            placeholder="Personal Access Token"
+                            class="w-full px-4 py-3 bg-dark-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue pr-12"
+                            required
+                        />
+                        <button
+                            type="button"
+                            id="toggle-token"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <input
+                        type="text"
+                        value="Portfolio-Pro"
+                        readonly
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-300"
+                    />
+                    <div id="connection-error" class="text-red-400 text-sm hidden"></div>
+                    <button
+                        type="submit"
+                        id="connect-btn"
+                        class="w-full bg-cyber-blue text-dark-bg hover:bg-white font-bold py-3 rounded-lg transition-colors"
+                    >
+                        Connect GitHub
+                    </button>
+                </form>
+            </div>
+        `;
+
+        // Setup form handler
+        const githubForm = document.getElementById('github-form');
+        if (githubForm) {
+            githubForm.addEventListener('submit', (e) => this.handleGitHubSetup(e));
+        }
+
+        // Setup token toggle
+        const toggleToken = document.getElementById('toggle-token');
+        const tokenInput = document.getElementById('github-token');
+        if (toggleToken && tokenInput) {
+            toggleToken.addEventListener('click', () => {
+                const type = tokenInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                tokenInput.setAttribute('type', type);
+            });
+        }
+    }
+
+    async handleGitHubSetup(e) {
+        e.preventDefault();
+        
+        const connectBtn = document.getElementById('connect-btn');
+        const errorDiv = document.getElementById('connection-error');
+        
+        connectBtn.textContent = 'Connecting...';
+        connectBtn.disabled = true;
+        errorDiv.classList.add('hidden');
+
+        const username = document.getElementById('github-username').value;
+        const token = document.getElementById('github-token').value;
+        const repo = 'Portfolio-Pro';
+
+        try {
+            // Test GitHub connection
+            const response = await fetch(`https://api.github.com/repos/${username}/${repo}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+
+            if (response.ok) {
+                this.githubConfig = { username, token, repo };
+                localStorage.setItem('githubConfig', JSON.stringify(this.githubConfig));
+                this.showDashboard();
+                alert('GitHub connected successfully!');
+            } else {
+                throw new Error('Failed to connect to GitHub repository');
+            }
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
+        } finally {
+            connectBtn.textContent = 'Connect GitHub';
+            connectBtn.disabled = false;
+        }
+    }
+
+    showDashboard() {
+        this.currentView = 'dashboard';
+        const adminContent = document.getElementById('admin-content');
+        
+        adminContent.innerHTML = `
+            <div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold text-white">Portfolio Dashboard</h2>
+                    <div class="flex space-x-4">
+                        <button onclick="adminManager.showMessages()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            Messages (${this.getUnreadMessagesCount()})
+                        </button>
+                        <button onclick="adminManager.logout()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                            Logout
+                        </button>
+                        <button onclick="adminManager.closeModal()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                            Close
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upload Form -->
+                <div class="bg-dark-bg rounded-2xl p-6 mb-8">
+                    <h3 class="text-xl font-bold mb-4 text-white">Upload New Item</h3>
+                    <form id="upload-form" class="space-y-4">
+                        <input
+                            type="text"
+                            id="upload-title"
+                            placeholder="Project Title"
+                            class="w-full px-4 py-3 bg-card-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue"
+                            required
+                        />
+                        <select
+                            id="upload-category"
+                            class="w-full px-4 py-3 bg-card-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue"
+                            required
+                        >
+                            <option value="">Select Category</option>
+                            <option value="High-Converting Ads">High-Converting Ads</option>
+                            <option value="Viral Short Videos">Viral Short Videos</option>
+                            <option value="Books & Podcasts">Books & Podcasts</option>
+                            <option value="Pinterest That Sells">Pinterest That Sells</option>
+                            <option value="Web Tools & Extensions">Web Tools & Extensions</option>
+                            <option value="AI-Powered Visuals">AI-Powered Visuals</option>
+                        </select>
+                        <input
+                            type="file"
+                            id="upload-file"
+                            accept=".pdf,.mp4,.docx"
+                            class="w-full px-4 py-3 bg-card-bg border border-cyber-blue/30 rounded-lg text-white focus:outline-none focus:border-cyber-blue"
+                            required
+                        />
+                        <button
+                            type="submit"
+                            id="upload-btn"
+                            class="w-full bg-cyber-blue text-dark-bg hover:bg-white font-bold py-3 rounded-lg transition-colors"
+                        >
+                            Upload (Max 200MB)
+                        </button>
+                    </form>
+                    <div id="upload-progress" class="mt-4 hidden">
+                        <div class="bg-gray-700 rounded-full h-2">
+                            <div id="progress-bar" class="bg-cyber-blue h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p id="progress-text" class="text-sm text-gray-400 mt-2">Uploading...</p>
+                    </div>
+                </div>
+
+                <!-- Portfolio Grid -->
+                <div class="bg-dark-bg rounded-2xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-white">Manage Portfolio</h3>
+                    <div id="portfolio-items" class="space-y-4 max-h-96 overflow-y-auto">
+                        <!-- Portfolio items will be loaded here -->
+                    </div>
                 </div>
             </div>
-        `).join('');
+        `;
+
+        // Setup upload form
+        const uploadForm = document.getElementById('upload-form');
+        if (uploadForm) {
+            uploadForm.addEventListener('submit', (e) => this.handleUpload(e));
+        }
+
+        this.loadPortfolioItems();
+    }
+
+    showMessages() {
+        const adminContent = document.getElementById('admin-content');
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
         
-    } catch (error) {
-        console.error('Error loading admin portfolio:', error);
-        grid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #ef4444;">
-                <p>Error loading portfolio items. Please check your connection.</p>
+        adminContent.innerHTML = `
+            <div>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold text-white">Messages</h2>
+                    <button onclick="adminManager.showDashboard()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                        Back to Dashboard
+                    </button>
+                </div>
+                <div class="space-y-4 max-h-96 overflow-y-auto">
+                    ${messages.length === 0 ? 
+                        '<p class="text-gray-400 text-center py-8">No messages yet.</p>' :
+                        messages.map(msg => `
+                            <div class="bg-card-bg rounded-lg p-4 ${msg.read ? '' : 'border-l-4 border-cyber-blue'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <strong class="text-white">${msg.name}</strong>
+                                        <span class="text-gray-400 text-sm ml-2">${msg.email}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        ${new Date(msg.timestamp).toLocaleDateString()}
+                                    </div>
+                                </div>
+                                <p class="text-gray-300">${msg.message}</p>
+                                <div class="mt-2">
+                                    ${!msg.read ? `<button onclick="adminManager.markAsRead('${msg.id}')" class="text-cyber-blue text-sm hover:underline">Mark as Read</button>` : ''}
+                                    <button onclick="adminManager.deleteMessage('${msg.id}')" class="text-red-400 text-sm hover:underline ml-4">Delete</button>
+                                </div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
             </div>
         `;
     }
-}
 
-// Load Portfolio from GitHub
-async function loadPortfolioFromGitHub() {
-    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-    
-    const response = await fetch(portfolioUrl, {
-        headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
+    markAsRead(messageId) {
+        const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+        const updatedMessages = messages.map(msg =>
+            msg.id === messageId ? { ...msg, read: true } : msg
+        );
+        localStorage.setItem('messages', JSON.stringify(updatedMessages));
+        this.showMessages();
+        this.updateAdminButton();
+    }
+
+    deleteMessage(messageId) {
+        if (confirm('Are you sure you want to delete this message?')) {
+            const messages = JSON.parse(localStorage.getItem('messages') || '[]');
+            const updatedMessages = messages.filter(msg => msg.id !== messageId);
+            localStorage.setItem('messages', JSON.stringify(updatedMessages));
+            this.showMessages();
+            this.updateAdminButton();
         }
-    });
-    
-    if (response.ok) {
-        const fileData = await response.json();
-        const content = atob(fileData.content);
-        const portfolioData = JSON.parse(content);
-        return portfolioData.portfolio || [];
     }
-    
-    return [];
-}
 
-// Delete Portfolio Item
-async function deletePortfolioItem(id) {
-    if (!confirm('Are you sure you want to delete this portfolio item?')) {
-        return;
-    }
-    
-    if (!githubToken) {
-        showToast('GitHub access required to delete files', 'error');
-        return;
-    }
-    
-    try {
-        // Find item
-        const portfolioData = await loadPortfolioFromGitHub();
-        const item = portfolioData.find(p => p.id === id);
+    async handleUpload(e) {
+        e.preventDefault();
         
-        if (!item) {
-            showToast('Item not found', 'error');
+        if (!this.githubConfig) {
+            alert('GitHub not configured');
             return;
         }
-        
-        // Delete files from GitHub
-        await deleteFileFromGitHub(item.file);
-        if (item.thumbnail) {
-            await deleteFileFromGitHub(item.thumbnail);
-        }
-        
-        // Update portfolio.json
-        await removeFromPortfolioJson(id);
-        
-        showToast('Portfolio item deleted successfully');
-        
-        // Reload data
-        setTimeout(() => {
-            loadAdminPortfolio();
-            if (typeof window.loadPortfolioData === 'function') {
-                window.loadPortfolioData();
-            }
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Delete error:', error);
-        showToast('Failed to delete item', 'error');
-    }
-}
 
-// Delete File from GitHub
-async function deleteFileFromGitHub(filePath) {
-    try {
-        const getUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/${filePath}`;
+        const title = document.getElementById('upload-title').value;
+        const category = document.getElementById('upload-category').value;
+        const fileInput = document.getElementById('upload-file');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select a file');
+            return;
+        }
+
+        // Validate file
+        const maxSize = 200 * 1024 * 1024; // 200MB
+        const allowedTypes = ['application/pdf', 'video/mp4', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
         
-        const getResponse = await fetch(getUrl, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Accept': 'application/vnd.github.v3+json'
-            }
+        if (file.size > maxSize) {
+            alert('File size exceeds 200MB limit');
+            return;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('Only PDF, MP4, and DOCX files are allowed');
+            return;
+        }
+
+        const uploadBtn = document.getElementById('upload-btn');
+        const progressDiv = document.getElementById('upload-progress');
+        
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+        progressDiv.classList.remove('hidden');
+
+        try {
+            // Convert file to base64
+            const base64Content = await this.convertFileToBase64(file);
+            
+            // Generate filename
+            const timestamp = Date.now();
+            const fileExtension = file.name.split('.').pop();
+            const fileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.${fileExtension}`;
+
+            // Upload to GitHub
+            await this.uploadToGitHub(fileName, base64Content, `Upload ${title}`);
+
+            // Generate thumbnail
+            const thumbnail = await this.generateThumbnail(file);
+
+            // Create portfolio item
+            const newItem = {
+                id: `item_${timestamp}`,
+                title,
+                category,
+                fileName,
+                fileType: file.type === 'video/mp4' ? 'mp4' : 
+                         file.type === 'application/pdf' ? 'pdf' : 'docx',
+                fileSize: file.size,
+                thumbnail,
+                uploadDate: new Date().toISOString(),
+                githubPath: `uploads/${fileName}`
+            };
+
+            // Update portfolio data
+            await this.updatePortfolioData(newItem);
+            
+            alert('Upload successful!');
+            document.getElementById('upload-form').reset();
+            this.loadPortfolioItems();
+        } catch (error) {
+            alert('Upload failed: ' + error.message);
+        } finally {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload (Max 200MB)';
+            progressDiv.classList.add('hidden');
+        }
+    }
+
+    async convertFileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const arrayBuffer = reader.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+                    resolve(base64String);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
         });
-        
-        if (getResponse.ok) {
-            const fileData = await getResponse.json();
-            
-            const deleteResponse = await fetch(getUrl, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `token ${githubToken}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/vnd.github.v3+json'
-                },
-                body: JSON.stringify({
-                    message: `Delete: ${filePath}`,
-                    sha: fileData.sha,
-                    committer: {
-                        name: 'Portfolio Admin',
-                        email: 'admin@portfolio.com'
-                    }
-                })
-            });
-            
-            if (!deleteResponse.ok) {
-                throw new Error('Failed to delete file');
-            }
-        }
-    } catch (error) {
-        console.error('File deletion error:', error);
     }
-}
 
-// Remove from Portfolio JSON
-async function removeFromPortfolioJson(itemId) {
-    const portfolioUrl = `https://api.github.com/repos/${githubUsername}/${githubRepo}/contents/data/portfolio.json`;
-    
-    const getResponse = await fetch(portfolioUrl, {
-        headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
+    async generateThumbnail(file) {
+        if (file.type === 'video/mp4') {
+            return this.generateVideoThumbnail(file);
+        } else if (file.type === 'application/pdf') {
+            return this.generatePDFThumbnail(file);
+        } else {
+            return this.generatePlaceholderThumbnail('DOCX');
         }
-    });
-    
-    if (getResponse.ok) {
-        const fileData = await getResponse.json();
-        const content = atob(fileData.content);
-        const portfolioData = JSON.parse(content);
+    }
+
+    async generateVideoThumbnail(file) {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                video.currentTime = 1;
+            };
+            
+            video.onseeked = () => {
+                if (ctx) {
+                    ctx.drawImage(video, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                } else {
+                    resolve(this.generatePlaceholderThumbnail('MP4'));
+                }
+            };
+            
+            video.onerror = () => resolve(this.generatePlaceholderThumbnail('MP4'));
+            video.src = URL.createObjectURL(file);
+        });
+    }
+
+    async generatePDFThumbnail(file) {
+        try {
+            if (typeof pdfjsLib !== 'undefined') {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                
+                const scale = 0.5;
+                const viewport = page.getViewport({ scale });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                if (context) {
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    return canvas.toDataURL('image/jpeg', 0.8);
+                }
+            }
+        } catch (error) {
+            console.error('Error generating PDF thumbnail:', error);
+        }
         
-        // Remove item
-        portfolioData.portfolio = portfolioData.portfolio.filter(item => item.id !== itemId);
-        portfolioData.lastUpdated = new Date().toISOString();
+        return this.generatePlaceholderThumbnail('PDF');
+    }
+
+    generatePlaceholderThumbnail(fileType) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 200;
+        const ctx = canvas.getContext('2d');
         
-        // Update portfolio.json
-        const updateResponse = await fetch(portfolioUrl, {
+        if (ctx) {
+            ctx.fillStyle = '#1a1d29';
+            ctx.fillRect(0, 0, 300, 200);
+            
+            ctx.strokeStyle = '#00f3ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, 300, 200);
+            
+            ctx.fillStyle = '#00f3ff';
+            ctx.font = 'bold 24px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(fileType, 150, 100);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '48px Arial';
+            ctx.fillText('📄', 150, 60);
+        }
+        
+        return canvas.toDataURL('image/jpeg', 0.8);
+    }
+
+    async uploadToGitHub(fileName, content, message) {
+        const path = `uploads/${fileName}`;
+        const url = `https://api.github.com/repos/${this.githubConfig.username}/${this.githubConfig.repo}/contents/${path}`;
+        
+        const response = await fetch(url, {
             method: 'PUT',
             headers: {
-                'Authorization': `token ${githubToken}`,
+                'Authorization': `Bearer ${this.githubConfig.token}`,
                 'Content-Type': 'application/json',
-                'Accept': 'application/vnd.github.v3+json'
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
             },
             body: JSON.stringify({
-                message: `Remove portfolio item: ${itemId}`,
-                content: btoa(JSON.stringify(portfolioData, null, 2)),
-                sha: fileData.sha,
-                committer: {
-                    name: 'Portfolio Admin',
-                    email: 'admin@portfolio.com'
-                }
+                message,
+                content,
+                branch: 'main'
             })
         });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to upload file: ${error.message}`);
+        }
+
+        return await response.json();
+    }
+
+    async updatePortfolioData(newItem) {
+        // Load existing portfolio data
+        const portfolioData = JSON.parse(localStorage.getItem('portfolioData') || '{"portfolio": [], "lastUpdated": ""}');
         
-        if (!updateResponse.ok) {
-            throw new Error('Failed to update portfolio.json');
+        // Add new item
+        portfolioData.portfolio.push(newItem);
+        portfolioData.lastUpdated = new Date().toISOString();
+        
+        // Save locally
+        localStorage.setItem('portfolioData', JSON.stringify(portfolioData));
+        
+        // Update GitHub
+        const path = 'data/portfolio.json';
+        const url = `https://api.github.com/repos/${this.githubConfig.username}/${this.githubConfig.repo}/contents/${path}`;
+        
+        // Get current file SHA
+        let sha;
+        try {
+            const currentFile = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${this.githubConfig.token}`,
+                    'Accept': 'application/vnd.github+json',
+                    'X-GitHub-Api-Version': '2022-11-28'
+                }
+            });
+            
+            if (currentFile.ok) {
+                const currentData = await currentFile.json();
+                sha = currentData.sha;
+            }
+        } catch (error) {
+            // File doesn't exist yet
+        }
+
+        const content = btoa(JSON.stringify(portfolioData, null, 2));
+        
+        const body = {
+            message: 'Update portfolio data',
+            content,
+            branch: 'main'
+        };
+        
+        if (sha) {
+            body.sha = sha;
+        }
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${this.githubConfig.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to update portfolio data: ${error.message}`);
         }
     }
-}
 
-// Load Admin Messages
-function loadAdminMessages() {
-    const container = document.getElementById('admin-messages');
-    if (!container) return;
-    
-    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-    
-    if (messages.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 2rem; color: #9ca3af;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📧</div>
-                <p>No messages received yet.</p>
+    loadPortfolioItems() {
+        const portfolioItems = document.getElementById('portfolio-items');
+        const portfolioData = JSON.parse(localStorage.getItem('portfolioData') || '{"portfolio": []}');
+        
+        if (portfolioData.portfolio.length === 0) {
+            portfolioItems.innerHTML = '<p class="text-gray-400 text-center py-8">No portfolio items yet.</p>';
+            return;
+        }
+
+        portfolioItems.innerHTML = portfolioData.portfolio.map(item => `
+            <div class="flex items-center justify-between bg-card-bg rounded-lg p-4">
+                <div class="flex items-center space-x-4">
+                    ${item.thumbnail ? 
+                        `<img src="${item.thumbnail}" alt="${item.title}" class="w-12 h-12 object-cover rounded">` :
+                        '<div class="w-12 h-12 bg-gray-600 rounded flex items-center justify-center">📄</div>'
+                    }
+                    <div>
+                        <div class="font-semibold text-white">${item.title}</div>
+                        <div class="text-sm text-gray-400">${item.category}</div>
+                        <div class="text-xs text-gray-500">
+                            ${this.formatFileSize(item.fileSize)} • ${item.fileType.toUpperCase()}
+                        </div>
+                    </div>
+                </div>
+                <button onclick="adminManager.deleteItem('${item.id}')" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    Delete
+                </button>
             </div>
-        `;
-        return;
+        `).join('');
     }
-    
-    container.innerHTML = messages.map(message => `
-        <div class="message-item ${message.read ? '' : 'unread'}">
-            <div class="message-header">
-                <div class="message-from">${message.name}</div>
-                <div class="message-date">${new Date(message.date).toLocaleDateString()}</div>
-            </div>
-            <div class="message-email">${message.email}</div>
-            <div class="message-content">${message.message}</div>
-            <div class="message-actions">
-                ${!message.read ? `<button onclick="markMessageRead('${message.id}')" class="btn btn-primary">Mark Read</button>` : ''}
-                <button onclick="deleteMessage('${message.id}')" class="btn btn-danger">Delete</button>
-            </div>
-        </div>
-    `).join('');
-}
 
-// Mark Message as Read
-function markMessageRead(messageId) {
-    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-    const message = messages.find(m => m.id === messageId);
-    
-    if (message) {
-        message.read = true;
-        localStorage.setItem('messages_v2', JSON.stringify(messages));
-        loadAdminMessages();
-        showToast('Message marked as read');
+    async deleteItem(itemId) {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+
+        const portfolioData = JSON.parse(localStorage.getItem('portfolioData') || '{"portfolio": []}');
+        const item = portfolioData.portfolio.find(p => p.id === itemId);
+        
+        if (!item) {
+            alert('Item not found');
+            return;
+        }
+
+        try {
+            // Delete file from GitHub
+            await this.deleteFromGitHub(item.githubPath);
+            
+            // Update portfolio data
+            portfolioData.portfolio = portfolioData.portfolio.filter(p => p.id !== itemId);
+            portfolioData.lastUpdated = new Date().toISOString();
+            
+            localStorage.setItem('portfolioData', JSON.stringify(portfolioData));
+            await this.updatePortfolioData();
+            
+            alert('Item deleted successfully');
+            this.loadPortfolioItems();
+        } catch (error) {
+            alert('Delete failed: ' + error.message);
+        }
     }
-}
 
-// Delete Message
-function deleteMessage(messageId) {
-    if (!confirm('Are you sure you want to delete this message?')) {
-        return;
+    async deleteFromGitHub(githubPath) {
+        const url = `https://api.github.com/repos/${this.githubConfig.username}/${this.githubConfig.repo}/contents/${githubPath}`;
+        
+        // Get the file's SHA first
+        const fileResponse = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${this.githubConfig.token}`,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            }
+        });
+
+        if (!fileResponse.ok) {
+            throw new Error('File not found');
+        }
+
+        const fileData = await fileResponse.json();
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${this.githubConfig.token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            },
+            body: JSON.stringify({
+                message: `Delete ${githubPath}`,
+                sha: fileData.sha,
+                branch: 'main'
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`Failed to delete file: ${error.message}`);
+        }
     }
-    
-    const messages = JSON.parse(localStorage.getItem('messages_v2') || '[]');
-    const filteredMessages = messages.filter(m => m.id !== messageId);
-    localStorage.setItem('messages_v2', JSON.stringify(filteredMessages));
-    
-    loadAdminMessages();
-    showToast('Message deleted');
-}
 
-// Utility Functions
-function getFileUrl(filePath) {
-    if (!filePath) return '';
-    
-    if (filePath.startsWith('http')) {
-        return filePath;
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-    
-    if (githubUsername && githubRepo) {
-        return `https://raw.githubusercontent.com/${githubUsername}/${githubRepo}/main/${filePath}`;
+
+    logout() {
+        this.isAuthenticated = false;
+        localStorage.removeItem('adminAuthenticated');
+        const adminBtn = document.getElementById('admin-btn');
+        if (adminBtn) {
+            adminBtn.textContent = 'Admin';
+        }
+        this.closeModal();
     }
-    
-    return filePath;
-}
 
-function getCategoryName(category) {
-    const categoryNames = {
-        'ads': 'High-Converting Ads',
-        'videos': 'Viral Videos',
-        'books': 'Books & Podcasts',
-        'email': 'Email Campaigns',
-        'pinterest': 'Pinterest',
-        'tools': 'Web Tools',
-        'ai': 'AI Visuals'
-    };
-    return categoryNames[category] || category;
-}
-
-function clearLoginErrors() {
-    const errorEl = document.getElementById('login-error');
-    if (errorEl) {
-        errorEl.classList.remove('active');
-        errorEl.textContent = '';
-    }
-}
-
-function showLoginError(message) {
-    const errorEl = document.getElementById('login-error');
-    if (errorEl) {
-        errorEl.textContent = message;
-        errorEl.classList.add('active');
-    }
-}
-
-function clearGitHubErrors() {
-    const errorEl = document.getElementById('github-error');
-    if (errorEl) {
-        errorEl.classList.remove('active');
-        errorEl.textContent = '';
+    closeModal() {
+        const adminModal = document.getElementById('admin-modal');
+        adminModal.classList.add('hidden');
     }
 }
 
-function showGitHubError(message) {
-    const errorEl = document.getElementById('github-error');
-    if (errorEl) {
-        errorEl.textContent = message;
-        errorEl.classList.add('active');
-    }
-}
-
-function clearForm() {
-    const usernameField = document.getElementById('admin-username');
-    const passwordField = document.getElementById('admin-password');
-    
-    if (usernameField) usernameField.value = '';
-    if (passwordField) passwordField.value = '';
-}
-
-// Make functions globally available
-window.showAdminModal = showAdminModal;
-window.hideAdminModal = hideAdminModal;
-window.hideGitHubTokenModal = hideGitHubTokenModal;
-window.hideAdminDashboard = hideAdminDashboard;
-window.showTab = showTab;
-window.deletePortfolioItem = deletePortfolioItem;
-window.markMessageRead = markMessageRead;
-window.deleteMessage = deleteMessage;
-window.loadPortfolioFromGitHub = loadPortfolioFromGitHub;
-
-console.log('Admin.js loaded successfully');
+// Initialize admin manager
+let adminManager;
+document.addEventListener('DOMContentLoaded', () => {
+    adminManager = new AdminManager();
+});

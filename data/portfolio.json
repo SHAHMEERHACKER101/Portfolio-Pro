@@ -1,16 +1,4 @@
 {
-  "portfolio": [
-    {
-      "id": "1703001234567",
-      "title": "High-Converting Facebook Ad Campaign",
-      "category": "ads",
-      "file": "uploads/sample-ad-campaign.pdf",
-      "thumbnail": "uploads/thumbs/sample-ad-campaign.svg",
-      "uploadDate": "2024-08-21T20:00:00.000Z",
-      "fileSize": 1024000,
-      "fileType": "application/pdf"
-    }
-  ],
-  "lastUpdated": "2024-08-21T20:00:00.000Z",
-  "version": "2.0"
+  "portfolio": [],
+  "lastUpdated": "2025-01-22T06:40:00.000Z"
 }
