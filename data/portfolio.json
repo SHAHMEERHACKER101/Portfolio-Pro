@@ -1,3 +1,13 @@
 {
-  "portfolio": []
+  "portfolio": [
+    {
+      "id": "1755849944373",
+      "title": "new item ",
+      "category": "Copywriting",
+      "fileName": "Privacy Policy.pdf",
+      "filePath": "uploads/1755849942678-Privacy Policy.pdf",
+      "uploadDate": "2025-08-22T08:05:44.373Z",
+      "description": "Copywriting project - new item "
+    }
+  ]
 }
