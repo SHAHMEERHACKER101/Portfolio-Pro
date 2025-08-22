@@ -11,7 +11,16 @@
       "uploadDate": "2025-08-22T07:18:22.508Z",
       "githubPath": "uploads/new_item__1755847101208.pdf"
     },
-    null
+    null,
+    {
+      "id": "1755848804780",
+      "title": "new item ",
+      "category": "Copywriting",
+      "fileName": "Privacy Policy.pdf",
+      "filePath": "uploads/1755848803033-Privacy Policy.pdf",
+      "uploadDate": "2025-08-22T07:46:44.780Z",
+      "description": "Copywriting project - new item "
+    }
   ],
   "lastUpdated": "2025-08-22T07:21:39.799Z"
 }
