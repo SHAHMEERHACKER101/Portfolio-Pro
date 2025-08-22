@@ -69,15 +69,17 @@ class DownloadHandler {
             return filePath;
         }
         
-        // For GitHub raw files
+        // For GitHub raw files - properly encode spaces and special characters
         if (filePath.startsWith('uploads/')) {
-            // Try GitHub raw URL first
-            const githubRawUrl = `https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${filePath}`;
+            // Encode the entire path properly
+            const encodedPath = filePath.replace(/ /g, '%20').replace(/[^a-zA-Z0-9\/\-_.~]/g, encodeURIComponent);
+            const githubRawUrl = `https://raw.githubusercontent.com/SHAHMEERHACKER101/Portfolio-Pro/main/${encodedPath}`;
             return githubRawUrl;
         }
         
         // Fallback to relative URL
-        return window.location.origin + '/' + filePath;
+        const encodedPath = filePath.replace(/ /g, '%20');
+        return window.location.origin + '/' + encodedPath;
     }
     
     triggerDownload(blob, fileName) {

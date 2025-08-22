@@ -62,16 +62,16 @@ class ShahmeerPortfolio {
         });
         
         // Scale cursor on hover
-        document.addEventListener('mouseenter', (e) => {
-            if (e.target.matches('button, a, .portfolio-card')) {
+        document.addEventListener('mouseover', (e) => {
+            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('portfolio-card'))) {
                 if (this.cursor) {
                     this.cursor.style.transform = 'scale(1.5)';
                 }
             }
         }, true);
         
-        document.addEventListener('mouseleave', (e) => {
-            if (e.target.matches('button, a, .portfolio-card')) {
+        document.addEventListener('mouseout', (e) => {
+            if (e.target && (e.target.matches('button') || e.target.matches('a') || e.target.classList.contains('portfolio-card'))) {
                 if (this.cursor) {
                     this.cursor.style.transform = 'scale(1)';
                 }
