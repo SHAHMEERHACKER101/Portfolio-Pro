@@ -1,0 +1,204 @@
+{
+  "personal": {
+    "name": "Shahmeer Baqai",
+    "title": "Digital Strategist",
+    "subtitle": "High-Converting Copy & AI Videos That Sell",
+    "experience": "10+ years",
+    "clients": "1000+",
+    "videoViews": "5M+",
+    "email": "contact@shahmeerbaqai.com",
+    "website": "https://shahmeerbaqai-portfolio-pro.pages.dev/",
+    "portfolio": "https://portfolio-files.pages.dev/"
+  },
+  "services": [
+    {
+      "id": 1,
+      "icon": "🚀",
+      "title": "High-Converting Ads",
+      "description": "Facebook, Instagram, TikTok — copy that sells in 3 seconds.",
+      "details": "Specialized in creating ad copy that converts browsers into buyers within seconds of viewing."
+    },
+    {
+      "id": 2,
+      "icon": "🎥",
+      "title": "Viral Short Videos",
+      "description": "AI-powered visuals + music that stop the scroll.",
+      "details": "Create engaging short-form content optimized for maximum reach and engagement."
+    },
+    {
+      "id": 3,
+      "icon": "📚",
+      "title": "Ghostwriting",
+      "description": "True crime, books, YouTube scripts — in your voice.",
+      "details": "Professional ghostwriting services that capture your unique voice and style."
+    },
+    {
+      "id": 4,
+      "icon": "📧",
+      "title": "Email That Converts",
+      "description": "Newsletters that get opens, clicks, and sales.",
+      "details": "Email marketing campaigns designed to nurture leads and drive conversions."
+    },
+    {
+      "id": 5,
+      "icon": "📌",
+      "title": "Pinterest That Sells",
+      "description": "High-CTR pins that drive traffic and revenue.",
+      "details": "Pinterest marketing strategies that generate consistent traffic and sales."
+    },
+    {
+      "id": 6,
+      "icon": "🛠️",
+      "title": "Web Tools & AI",
+      "description": "Chrome extensions, AI systems, and custom apps.",
+      "details": "Custom development of web tools and AI-powered solutions for business automation."
+    }
+  ],
+  "professionalSkills": [
+    {
+      "id": 1,
+      "icon": "✍️",
+      "name": "Copywriting",
+      "experience": "10 Years",
+      "level": "Expert",
+      "description": "High-converting sales copy, ads, and marketing content",
+      "category": "core"
+    },
+    {
+      "id": 2,
+      "icon": "📝",
+      "name": "Content Writing",
+      "experience": "10 Years",
+      "level": "Expert",
+      "description": "Engaging blogs, articles, and website content",
+      "category": "core"
+    },
+    {
+      "id": 3,
+      "icon": "🎓",
+      "name": "Academic Writing",
+      "experience": "5 Years",
+      "level": "Expert",
+      "description": "Research papers, theses, and scholarly content",
+      "category": "specialized"
+    },
+    {
+      "id": 4,
+      "icon": "🔍",
+      "name": "SEO Writing",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "Search-optimized content that ranks and converts",
+      "category": "digital"
+    },
+    {
+      "id": 5,
+      "icon": "🎨",
+      "name": "Graphic Design",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "AI-powered visuals and brand design",
+      "category": "creative"
+    },
+    {
+      "id": 6,
+      "icon": "🎬",
+      "name": "Video Services",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "AI video creation, editing, and film design",
+      "category": "multimedia"
+    },
+    {
+      "id": 7,
+      "icon": "✂️",
+      "name": "Video Editing",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "Professional editing with CapCut and AI tools",
+      "category": "multimedia"
+    },
+    {
+      "id": 8,
+      "icon": "💻",
+      "name": "Web Development",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "Chrome extensions, web apps, and programming",
+      "category": "technical"
+    },
+    {
+      "id": 9,
+      "icon": "📱",
+      "name": "Social Marketing",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "Platform strategy and viral content creation",
+      "category": "marketing"
+    },
+    {
+      "id": 10,
+      "icon": "📱",
+      "name": "App Development",
+      "experience": "Latest Expertise",
+      "level": "Expert",
+      "description": "Android apps and mobile solutions",
+      "category": "technical"
+    }
+  ],
+  "testimonials": [
+    {
+      "id": 1,
+      "stars": 5,
+      "text": "Shahmeer tripled our conversion rate in 2 weeks. His ads are pure profit engines.",
+      "author": "Sarah K.",
+      "title": "Marketing Director",
+      "company": "TechStartup Inc."
+    },
+    {
+      "id": 2,
+      "stars": 5,
+      "text": "His AI videos went viral — 5M views in 3 days. Unreal reach and engagement.",
+      "author": "James L.",
+      "title": "Founder",
+      "company": "Creative Agency"
+    },
+    {
+      "id": 3,
+      "stars": 5,
+      "text": "Shahmeer ghostwrote my podcast — sounds exactly like me, but better. 10/10.",
+      "author": "Alex R.",
+      "title": "Podcaster",
+      "company": "True Crime Network"
+    }
+  ],
+  "stats": {
+    "experience": "10+",
+    "clients": "1000+",
+    "videoViews": "5M+",
+    "projectsCompleted": "2000+",
+    "conversionIncrease": "300%",
+    "averageRating": 4.9
+  },
+  "portfolioLinks": {
+    "main": "https://portfolio-files.pages.dev/",
+    "samples": {
+      "copywriting": "https://portfolio-files.pages.dev/copywriting",
+      "videos": "https://portfolio-files.pages.dev/videos",
+      "websites": "https://portfolio-files.pages.dev/websites",
+      "graphics": "https://portfolio-files.pages.dev/graphics"
+    }
+  },
+  "contact": {
+    "email": "contact@shahmeerbaqai.com",
+    "website": "https://shahmeerbaqai-portfolio-pro.pages.dev/",
+    "availability": "Available for new projects",
+    "responseTime": "Within 24 hours",
+    "preferredContact": "email"
+  },
+  "meta": {
+    "version": "1.0",
+    "lastUpdated": "2025-01-17",
+    "description": "Portfolio data for Shahmeer Baqai - Digital Strategist specializing in high-converting copy and AI-powered content creation."
+  }
+}
